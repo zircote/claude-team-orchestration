@@ -25,12 +25,12 @@ This is a fan-out/fan-in coordination pattern built on agent teams.
 
 ## When to Use
 
-- File exceeds ~2000 lines or ~1500 CSV rows
+- File exceeds ~1500 lines or ~1500 CSV rows
 - You need comprehensive analysis of the full content, not just a snippet
 - Log analysis, data exports, large codebase review, document analysis
 - Grep alone can't answer the question (need contextual analysis, not keyword matching)
 
-**Don't use when:** File fits in context (< 1500 lines), a targeted Grep suffices, or the task is editing (not analyzing).
+**Don't use when:** File fits in context (~1500 lines or fewer), a targeted Grep suffices, or the task is editing (not analyzing).
 
 ---
 

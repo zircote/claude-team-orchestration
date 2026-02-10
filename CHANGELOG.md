@@ -9,14 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **RLM Pattern** (Pattern 7): Fan-out/fan-in chunked parallel analysis for files exceeding context limits, based on [arXiv:2512.24601](https://arxiv.org/abs/2512.24601). Uses role-based workflow descriptions that naturally trigger team orchestration (TeamCreate, TaskCreate, SendMessage, TeamDelete)
+- **RLM Pattern** (Pattern 7): Fan-out/fan-in chunked parallel analysis for files exceeding context limits, based on [arXiv:2512.24601](https://arxiv.org/abs/2512.24601). Uses role-based workflow descriptions that naturally trigger team orchestration (TeamCreate, Task, SendMessage, TeamDelete)
 - **New agents** (`agents/`):
   - `swarm:rlm-chunk-analyzer` — Haiku-powered chunk-level analysis agent with structured JSON output; reads files directly via Read tool with offset/limit
   - `swarm:rlm-synthesizer` — Sonnet-powered synthesis agent for aggregating multi-chunk findings into consolidated reports with file:line references
 - **New skill** (`skills/rlm-pattern/`):
   - `swarm:rlm-pattern` — Complete RLM workflow with partitioning strategy guide (CSV, logs, source code, prose, time-series), team composition table, analyst report format, synthesis output structure, context management guardrails, and comparison with rlm-rs plugin
 - **Workflow 4: RLM Document Analysis** (`skills/orchestration-patterns/examples/complete-workflows.md`): End-to-end scenario-based example with Grep scouting, targeted chunk analysis, and structured synthesis
-- **Example analysis prompt** (`docs/prompts/analysis.md`): Reference prompt for CSI Jira export analysis using the RLM pattern
+- **Example analysis prompt** (`docs/RLM-Prompt-Example.md`): Reference prompt for CSI Jira export analysis using the RLM pattern
 
 ### Changed
 

@@ -278,18 +278,16 @@ Task({
 ### RLM Agents
 
 ```javascript
-// Chunk analysis (fast, cheap)
+// Chunk analysis (fast, cheap) - RLM plugin agent
 Task({
-  subagent_type: "general-purpose",
-  model: "haiku",
+  subagent_type: "swarm:rlm-chunk-analyzer",
   description: "Analyze log chunk",
   prompt: "Read /path/to/file.log lines 1-200 and analyze for errors. Return JSON findings."
 })
 
-// Synthesis (higher quality)
+// Synthesis (higher quality) - RLM plugin agent
 Task({
-  subagent_type: "general-purpose",
-  model: "sonnet",
+  subagent_type: "swarm:rlm-synthesizer",
   description: "Synthesize findings",
   prompt: "Synthesize these chunk findings into a coherent report: [findings JSON]"
 })

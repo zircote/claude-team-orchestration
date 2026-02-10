@@ -1,8 +1,21 @@
-# swarm
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/social-preview-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset=".github/social-preview.svg">
+  <img alt="swarm - Multi-agent orchestration for Claude Code" src=".github/social-preview.svg" width="100%">
+</picture>
+
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-plugin-7c3aed)](https://code.claude.com/docs/en/plugins)
+[![Agent Teams](https://img.shields.io/badge/agent_teams-experimental-f59e0b)](https://code.claude.com/docs/en/agent-teams)
+[![Version](https://img.shields.io/badge/version-1.0.0-22d3ee)](CHANGELOG.md)
 
 Multi-agent orchestration plugin for [Claude Code](https://claude.com/claude-code). Coordinate teams of agents with shared tasks, inter-agent messaging, and proven patterns for parallel reviews, pipelines, and self-organizing swarms.
 
 **Official docs:** [Agent Teams](https://code.claude.com/docs/en/agent-teams)
+
+<p align="center">
+  <img src=".github/readme-infographic.svg" alt="How Swarm Orchestration Works" width="700">
+</p>
 
 ---
 

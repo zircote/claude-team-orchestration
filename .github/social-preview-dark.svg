@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="accent2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- Geometric network pattern -->
+  <polygon points="640,120 710,160 710,240 640,280 570,240 570,160" fill="url(#accent1)" opacity="0.08"/>
+  <polygon points="640,120 710,160 710,240 640,280 570,240 570,160" fill="none" stroke="#818cf8" stroke-width="1.5" opacity="0.25"/>
+
+  <polygon points="480,180 520,200 520,240 480,260 440,240 440,200" fill="url(#accent2)" opacity="0.08"/>
+  <polygon points="480,180 520,200 520,240 480,260 440,240 440,200" fill="none" stroke="#22d3ee" stroke-width="1.2" opacity="0.25"/>
+
+  <polygon points="800,180 840,200 840,240 800,260 760,240 760,200" fill="url(#accent2)" opacity="0.08"/>
+  <polygon points="800,180 840,200 840,240 800,260 760,240 760,200" fill="none" stroke="#22d3ee" stroke-width="1.2" opacity="0.25"/>
+
+  <polygon points="540,320 580,340 580,380 540,400 500,380 500,340" fill="url(#accent2)" opacity="0.08"/>
+  <polygon points="540,320 580,340 580,380 540,400 500,380 500,340" fill="none" stroke="#22d3ee" stroke-width="1.2" opacity="0.25"/>
+
+  <polygon points="740,320 780,340 780,380 740,400 700,380 700,340" fill="url(#accent2)" opacity="0.08"/>
+  <polygon points="740,320 780,340 780,380 740,400 700,380 700,340" fill="none" stroke="#22d3ee" stroke-width="1.2" opacity="0.25"/>
+
+  <!-- Connection lines -->
+  <line x1="520" y1="220" x2="570" y2="200" stroke="#818cf8" stroke-width="1" opacity="0.2"/>
+  <line x1="710" y1="200" x2="760" y2="220" stroke="#818cf8" stroke-width="1" opacity="0.2"/>
+  <line x1="580" y1="260" x2="540" y2="340" stroke="#818cf8" stroke-width="1" opacity="0.15"/>
+  <line x1="700" y1="260" x2="740" y2="340" stroke="#818cf8" stroke-width="1" opacity="0.15"/>
+  <line x1="640" y1="280" x2="540" y2="340" stroke="#818cf8" stroke-width="1" opacity="0.15"/>
+  <line x1="640" y1="280" x2="740" y2="340" stroke="#818cf8" stroke-width="1" opacity="0.15"/>
+
+  <!-- Decorative shapes -->
+  <circle cx="380" cy="150" r="4" fill="#818cf8" opacity="0.15"/>
+  <circle cx="900" cy="150" r="4" fill="#818cf8" opacity="0.15"/>
+  <circle cx="350" cy="300" r="3" fill="#22d3ee" opacity="0.1"/>
+  <circle cx="930" cy="300" r="3" fill="#22d3ee" opacity="0.1"/>
+  <circle cx="420" cy="420" r="5" fill="#fbbf24" opacity="0.08"/>
+  <circle cx="860" cy="420" r="5" fill="#fbbf24" opacity="0.08"/>
+
+  <rect x="360" y="460" width="8" height="8" fill="#818cf8" opacity="0.08" transform="rotate(45 364 464)"/>
+  <rect x="910" y="180" width="8" height="8" fill="#22d3ee" opacity="0.08" transform="rotate(45 914 184)"/>
+  <rect x="320" y="220" width="6" height="6" fill="#fbbf24" opacity="0.06" transform="rotate(45 323 223)"/>
+  <rect x="960" y="370" width="6" height="6" fill="#fbbf24" opacity="0.06" transform="rotate(45 963 373)"/>
+
+  <polygon points="400,380 410,395 390,395" fill="#818cf8" opacity="0.08"/>
+  <polygon points="880,250 890,265 870,265" fill="#22d3ee" opacity="0.08"/>
+
+  <!-- Agent nodes -->
+  <circle cx="640" cy="120" r="6" fill="#818cf8" opacity="0.5"/>
+  <circle cx="710" cy="160" r="5" fill="#818cf8" opacity="0.4"/>
+  <circle cx="710" cy="240" r="5" fill="#818cf8" opacity="0.4"/>
+  <circle cx="640" cy="280" r="6" fill="#818cf8" opacity="0.5"/>
+  <circle cx="570" cy="240" r="5" fill="#818cf8" opacity="0.4"/>
+  <circle cx="570" cy="160" r="5" fill="#818cf8" opacity="0.4"/>
+
+  <circle cx="480" cy="220" r="4" fill="#22d3ee" opacity="0.4"/>
+  <circle cx="800" cy="220" r="4" fill="#22d3ee" opacity="0.4"/>
+  <circle cx="540" cy="360" r="4" fill="#22d3ee" opacity="0.4"/>
+  <circle cx="740" cy="360" r="4" fill="#22d3ee" opacity="0.4"/>
+
+  <!-- Plugin name -->
+  <text x="640" y="490" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="56" font-weight="700" fill="#f1f5f9" text-anchor="middle" letter-spacing="-1">swarm</text>
+
+  <!-- Tagline -->
+  <text x="640" y="530" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="400" fill="#94a3b8" text-anchor="middle">Multi-agent orchestration for Claude Code</text>
+
+  <!-- Bottom accent bar -->
+  <rect x="560" y="560" width="160" height="3" rx="1.5" fill="url(#accent1)" opacity="0.35"/>
+
+  <!-- Corner accents -->
+  <rect x="40" y="40" width="40" height="2" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="40" y="40" width="2" height="40" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="1200" y="40" width="40" height="2" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="1238" y="40" width="2" height="40" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="40" y="598" width="40" height="2" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="40" y="560" width="2" height="40" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="1200" y="598" width="40" height="2" rx="1" fill="#818cf8" opacity="0.12"/>
+  <rect x="1238" y="560" width="2" height="40" rx="1" fill="#818cf8" opacity="0.12"/>
+</svg>

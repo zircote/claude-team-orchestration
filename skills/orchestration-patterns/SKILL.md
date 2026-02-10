@@ -28,6 +28,7 @@ Proven patterns for structuring agent teams. Choose the right pattern based on y
 | [Research + Implementation](#pattern-4-research--implementation) | Learn then build | Low | Phase gate |
 | [Plan Approval](#pattern-5-plan-approval) | High-risk changes | High | Approval gate |
 | [Multi-File Refactoring](#pattern-6-coordinated-multi-file-refactoring) | Cross-file changes | Medium | Fan-in |
+| [RLM (Recursive Language Model)](#pattern-7-rlm-recursive-language-model) | Files exceeding context limits | Medium | Fan-out/fan-in |
 
 ---
 
@@ -285,6 +286,37 @@ Task({
 
 ---
 
+## Pattern 7: RLM (Recursive Language Model)
+
+Divide large files into partitions, analyze each with a parallel agent team, then synthesize.
+
+**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content that exceeds context limits (~2000 lines).
+
+**Example prompt:**
+```
+Analyze this 8000-line production log for error patterns.
+Partition it into 8 chunks. Spawn 8 analyst agents to review
+each partition in parallel. Each analyst reports: error types,
+frequency counts, temporal patterns, and outliers.
+Synthesize all 8 reports into a consolidated analysis.
+```
+
+**How it works:**
+1. Team lead assesses the file size and determines partitioning strategy
+2. Team lead divides content into chunks (line ranges, file splits, or logical partitions)
+3. Analyst agents (3-10) each analyze one partition independently
+4. Each analyst reports structured findings back to team lead
+5. Team lead (or a dedicated synthesizer agent) combines all reports
+6. Shutdown and cleanup
+
+**Agent recommendations:**
+- Analysts: `swarm:rlm-chunk-analyzer` (Haiku)
+- Synthesizer: `swarm:rlm-synthesizer` (Sonnet)
+
+**See also:** [RLM Pattern](../rlm-pattern/SKILL.md) for partitioning strategies and team composition guidance.
+
+---
+
 ## Best Practices
 
 ### 1. Always Cleanup
@@ -335,3 +367,17 @@ If you're new to agent teams, start with tasks that have clear boundaries and do
 
 ### 7. Avoid File Conflicts
 Two teammates editing the same file leads to overwrites. Break work so each teammate owns a different set of files.
+
+### 8. Use Pass-by-Reference for Large Content
+
+Never paste file content into prompts. Pass file paths and line ranges instead:
+
+```javascript
+// Good: Pass by reference
+prompt: "Read /path/to/file.log lines 1-200 and analyze for errors"
+
+// Bad: Paste content into prompt
+prompt: `Analyze this content: ${fileContent}`
+```
+
+This is critical for the RLM pattern where chunks can be large. Analyzers should read files directly using the Read tool.

@@ -103,7 +103,8 @@ sequenceDiagram
 | [Task System](../task-system/SKILL.md) | TaskCreate, TaskList, TaskGet, TaskUpdate, dependencies, file locking |
 | [Agent Types](../agent-types/SKILL.md) | Built-in agents (Bash, Explore, Plan, general-purpose), plugin agents, selection guide |
 | [Messaging](../messaging/SKILL.md) | SendMessage (all types), message formats, automatic delivery, direct interaction |
-| [Orchestration Patterns](../orchestration-patterns/SKILL.md) | 6 patterns (parallel, pipeline, swarm, research, plan approval, refactoring) |
+| [Orchestration Patterns](../orchestration-patterns/SKILL.md) | 7 patterns (parallel, pipeline, swarm, research, plan approval, refactoring, RLM) |
+| [RLM Pattern](../rlm-pattern/SKILL.md) | Chunked analysis of large files using RLM (Recursive Language Model) pattern |
 | [Spawn Backends](../spawn-backends/SKILL.md) | in-process, tmux, iTerm2, teammateMode setting, auto-detection |
 | [Error Handling](../error-handling/SKILL.md) | Common errors, hooks (TeammateIdle, TaskCompleted), limitations, debugging |
 

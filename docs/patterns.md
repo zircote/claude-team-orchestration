@@ -1,6 +1,6 @@
 # Orchestration Patterns
 
-Six proven patterns for structuring agent teams. Choose based on your task's coordination needs.
+Seven proven patterns for structuring agent teams. Choose based on your task's coordination needs.
 
 ---
 
@@ -14,6 +14,7 @@ Six proven patterns for structuring agent teams. Choose based on your task's coo
 | [Research + Implementation](#research--implementation) | Learn then build | 2 | Phase gate |
 | [Plan Approval](#plan-approval) | High-risk changes | 1-2 | Approval gate |
 | [Multi-File Refactoring](#multi-file-refactoring) | Cross-file changes | 2-4 | Fan-in |
+| [RLM (Recursive Language Model)](#rlm-recursive-language-model) | Files exceeding context | 3-5 | Fan-out/fan-in |
 
 ---
 
@@ -176,6 +177,42 @@ Workers 1 and 2 can work in parallel. Worker 3 waits for both to finish.
 
 ---
 
+## RLM (Recursive Language Model)
+
+Divide large files into partitions, analyze each with parallel analyst agents, then synthesize.
+
+**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content > ~2000 lines.
+
+**Example prompt:**
+```
+Analyze this 8000-line production log for error patterns.
+Partition it into 8 chunks. Spawn 8 analyst agents to review
+each partition in parallel. Each analyst reports: error types,
+frequency counts, temporal patterns, and outliers.
+Synthesize all 8 reports into a consolidated analysis.
+```
+
+**How it works:**
+1. Team lead assesses file size and determines partitioning strategy
+2. Team lead divides content into chunks (line ranges, file splits, or logical partitions)
+3. Analyst agents (3-10) each analyze one partition independently
+4. Each analyst reports structured findings back to team lead
+5. Team lead (or a dedicated synthesizer agent) combines all reports
+6. Shutdown and cleanup
+
+**Key details:**
+- Describe roles and workflow — team lead divides, analysts analyze, team lead synthesizes
+- Pass file paths and line ranges — never paste content into prompts
+- Use Grep scouting to skip irrelevant regions (can reduce work by 80%)
+- Keep partition count to 5-10 to avoid context overflow
+- See [swarm:rlm-pattern](../skills/rlm-pattern/SKILL.md) for partitioning strategies and team composition
+
+**Agent recommendations:**
+- Analysts: `swarm:rlm-chunk-analyzer` (Haiku)
+- Synthesizer: `swarm:rlm-synthesizer` (Sonnet)
+
+---
+
 ## Best Practices
 
 ### Pick the right pattern
@@ -186,6 +223,7 @@ Workers 1 and 2 can work in parallel. Worker 3 waits for both to finish.
 - **Learn then build** → Research + Implementation
 - **Risky changes** → Plan Approval
 - **Cross-file changes with integration step** → Multi-File Refactoring
+- **Large document analysis** → RLM
 
 ### Avoid file conflicts
 

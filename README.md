@@ -7,7 +7,7 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-plugin-7c3aed)](https://code.claude.com/docs/en/plugins)
 [![Agent Teams](https://img.shields.io/badge/agent_teams-experimental-f59e0b)](https://code.claude.com/docs/en/agent-teams)
-[![Version](https://img.shields.io/badge/version-1.0.0-22d3ee)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-22d3ee)](CHANGELOG.md)
 
 Multi-agent orchestration plugin for [Claude Code](https://claude.com/claude-code). Coordinate teams of agents with shared tasks, inter-agent messaging, and proven patterns for parallel reviews, pipelines, and self-organizing swarms.
 
@@ -112,6 +112,7 @@ swarm:agent-types
 swarm:orchestration-patterns
 swarm:spawn-backends
 swarm:error-handling
+swarm:rlm-pattern
 ```
 
 ### Troubleshooting setup
@@ -163,9 +164,10 @@ All skills are available under the `swarm:` namespace.
 | [Task System](skills/task-system/SKILL.md) | `swarm:task-system` | Create tasks, set dependencies, claim work, track progress |
 | [Messaging](skills/messaging/SKILL.md) | `swarm:messaging` | Direct messages, broadcasts, shutdown requests, plan approvals |
 | [Agent Types](skills/agent-types/SKILL.md) | `swarm:agent-types` | Built-in and plugin agents, selection guide, capabilities |
-| [Orchestration Patterns](skills/orchestration-patterns/SKILL.md) | `swarm:orchestration-patterns` | Parallel specialists, pipelines, swarms, research+implement, plan approval |
+| [Orchestration Patterns](skills/orchestration-patterns/SKILL.md) | `swarm:orchestration-patterns` | 7 patterns: parallel specialists, pipelines, swarms, research+implement, plan approval, refactoring, RLM |
 | [Spawn Backends](skills/spawn-backends/SKILL.md) | `swarm:spawn-backends` | In-process, tmux, iTerm2 backends, auto-detection, configuration |
 | [Error Handling](skills/error-handling/SKILL.md) | `swarm:error-handling` | Common errors, quality gate hooks, known limitations, recovery strategies |
+| [RLM Pattern](skills/rlm-pattern/SKILL.md) | `swarm:rlm-pattern` | Chunked analysis of large files using RLM (Recursive Language Model) pattern |
 
 ---
 

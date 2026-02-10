@@ -30,6 +30,8 @@ Choose the right agent type for each role in your team. Agent types determine wh
 | Best practices research | **adr:adr-researcher** | Codebase analysis + web research |
 | Deep code exploration | **feature-dev:code-explorer** | Trace execution paths, map architecture |
 | Code review | **feature-dev:code-reviewer** | Bugs, logic errors, conventions |
+| Chunk-level file analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
+| Synthesize chunk findings | **swarm:rlm-synthesizer** | Sonnet, aggregation and deduplication |
 
 **Key rule:** Match the agent's tool access to the task requirements. Read-only agents (Explore, Plan) **cannot** edit or write files. Never assign them implementation work.
 
@@ -273,6 +275,30 @@ Task({
 })
 ```
 
+### RLM Agents
+
+```javascript
+// Chunk analysis (fast, cheap)
+Task({
+  subagent_type: "general-purpose",
+  model: "haiku",
+  description: "Analyze log chunk",
+  prompt: "Read /path/to/file.log lines 1-200 and analyze for errors. Return JSON findings."
+})
+
+// Synthesis (higher quality)
+Task({
+  subagent_type: "general-purpose",
+  model: "sonnet",
+  description: "Synthesize findings",
+  prompt: "Synthesize these chunk findings into a coherent report: [findings JSON]"
+})
+```
+
+**RLM agents (defined by this plugin):**
+- `swarm:rlm-chunk-analyzer` — Haiku model, reads file chunks via Read with offset/limit, returns structured JSON findings
+- `swarm:rlm-synthesizer` — Sonnet model, aggregates findings from multiple chunk analyses into coherent reports
+
 ---
 
 ## Agent Type Naming Convention
@@ -286,3 +312,7 @@ Examples:
 - `code-simplifier:code-simplifier`
 
 Built-in agents use simple names: `Bash`, `Explore`, `Plan`, `general-purpose`, `claude-code-guide`, `statusline-setup`.
+
+Swarm plugin agents follow the same convention:
+- `swarm:rlm-chunk-analyzer`
+- `swarm:rlm-synthesizer`

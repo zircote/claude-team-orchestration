@@ -20,6 +20,8 @@ Which agents are available and when to use each. Match the agent's tool access t
 | Best practices research | **adr:adr-researcher** | Codebase analysis + web research |
 | Deep code exploration | **feature-dev:code-explorer** | Trace execution paths, map architecture |
 | Code review | **feature-dev:code-reviewer** | Bugs, logic errors, conventions |
+| Chunk-level file analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
+| Synthesize chunk findings | **swarm:rlm-synthesizer** | Sonnet, aggregation and deduplication |
 
 **Key rule:** Read-only agents (Explore, Plan) **cannot** edit or write files. Never assign them implementation work.
 
@@ -122,6 +124,13 @@ Available when the corresponding plugins are installed. Plugin agents use the fo
 | Agent | Focus |
 |-------|-------|
 | `auto-harness:test-generator` | Comprehensive test definitions for components |
+
+### RLM Agents
+
+| Agent | Focus |
+|-------|-------|
+| `swarm:rlm-chunk-analyzer` | Read file chunks via offset/limit, return structured JSON findings (Haiku) |
+| `swarm:rlm-synthesizer` | Aggregate chunk findings into coherent reports (Sonnet) |
 
 ---
 

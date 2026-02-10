@@ -202,3 +202,40 @@ Task({ team_name: "codebase-review", name: "worker-3", subagent_type: "general-p
 // Workers self-organize: race to claim tasks, naturally load-balance
 // Monitor progress with TaskList() or by reading inbox
 ```
+
+---
+
+## Workflow 4: RLM Document Analysis
+
+**Scenario:** Analyze an 8500-line production log for error patterns and root causes.
+
+**Prompt:**
+```
+Analyze production.log (8500 lines) for error patterns and root causes.
+
+1. Team Lead: Determine file size. If too large for context, partition into
+   ~10 chunks of 200 lines each (with 20-line overlap). Use Grep to scout
+   for error-dense regions first — only create chunks for relevant sections.
+
+2. Each of 3-5 Analyst agents: Read your assigned chunk(s), identify error
+   patterns, categorize by type (database, auth, memory, etc.), note
+   timestamps and frequency, and report structured findings back to team-lead.
+
+3. Team Lead: Synthesize all analyst reports into a consolidated analysis with:
+   - Error pattern summary ranked by frequency
+   - Root cause analysis with cascading failure chains
+   - Timeline of events
+   - Recommendations for prevention
+```
+
+**What happens:**
+1. Team lead checks file size with `wc -l` — 8500 lines, too large
+2. Team lead uses Grep to find error clusters (lines 2000-4000 and 7000-8000)
+3. Team lead creates team and spawns 3-5 analyst agents with targeted line ranges
+4. Each analyst reads their chunk, analyzes for errors, and messages findings to team lead
+5. Team lead collects all reports and produces the consolidated analysis
+6. Team shuts down and cleans up
+
+**Agent recommendations:**
+- Analysts: `swarm:rlm-chunk-analyzer` (Haiku — fast and cheap for per-chunk analysis)
+- Synthesizer (optional): `swarm:rlm-synthesizer` (Sonnet — for complex cross-chunk synthesis)

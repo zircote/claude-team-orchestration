@@ -136,6 +136,6 @@ Have each send findings to team-lead, then synthesize a summary.
 
 ## 6. Next steps
 
-- Read [Patterns](patterns.md) to learn the six orchestration patterns
+- Read [Patterns](patterns.md) to learn the seven orchestration patterns
 - Read [Agent Types](agent-types.md) to pick the right agent for each role
 - Try the [complete workflow examples](../skills/orchestration-patterns/examples/complete-workflows.md)

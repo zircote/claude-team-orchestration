@@ -1,0 +1,174 @@
+---
+name: task-system
+description: Manage shared task lists for agent teams including creating tasks, setting dependencies, claiming work, and tracking progress. Use when creating work items, building task pipelines, coordinating task ownership, or managing task dependencies.
+---
+
+# Task System
+
+Manage shared work items with dependencies, ownership, and status tracking across agent teams.
+
+**Related skills:**
+- [Orchestrating](../orchestrating/SKILL.md) - Primitives overview and quick reference
+- [Team Management](../team-management/SKILL.md) - Creating and managing teams
+- [Messaging](../messaging/SKILL.md) - Communicating about task progress
+- [Orchestration Patterns](../orchestration-patterns/SKILL.md) - Patterns that use tasks effectively
+- [Error Handling](../error-handling/SKILL.md) - Handling task failures
+
+---
+
+## TaskCreate - Create Work Items
+
+```javascript
+TaskCreate({
+  subject: "Review authentication module",
+  description: "Review all files in app/services/auth/ for security vulnerabilities",
+  activeForm: "Reviewing auth module..."  // Shown in spinner when in_progress
+})
+```
+
+**Fields:**
+- `subject` - Brief, actionable title in imperative form (e.g., "Fix authentication bug")
+- `description` - Detailed description with context and acceptance criteria
+- `activeForm` - Present continuous form shown while task is in_progress (e.g., "Fixing authentication bug")
+
+All tasks are created with status `pending` and no owner.
+
+---
+
+## TaskList - See All Tasks
+
+```javascript
+TaskList()
+```
+
+Returns summary of each task:
+
+```
+#1 [completed] Analyze codebase structure
+#2 [in_progress] Review authentication module (owner: security-reviewer)
+#3 [pending] Generate summary report [blocked by #2]
+```
+
+**Fields returned:**
+- `id` - Task identifier
+- `subject` - Brief description
+- `status` - `pending`, `in_progress`, or `completed`
+- `owner` - Agent name if assigned, empty if available
+- `blockedBy` - List of task IDs that must complete first
+
+**When to check:** After completing a task, to find newly unblocked work. Prefer tasks in **ID order** (lowest first) when multiple are available.
+
+---
+
+## TaskGet - Get Task Details
+
+```javascript
+TaskGet({ taskId: "2" })
+```
+
+Returns full task with description, status, blockedBy, blocks, etc.
+
+---
+
+## TaskUpdate - Update Task Status
+
+```javascript
+// Claim a task
+TaskUpdate({ taskId: "2", owner: "security-reviewer" })
+
+// Start working
+TaskUpdate({ taskId: "2", status: "in_progress" })
+
+// Mark complete
+TaskUpdate({ taskId: "2", status: "completed" })
+
+// Set up dependencies
+TaskUpdate({ taskId: "3", addBlockedBy: ["1", "2"] })
+
+// Delete a task
+TaskUpdate({ taskId: "4", status: "deleted" })
+```
+
+**Status workflow:** `pending` -> `in_progress` -> `completed`
+
+Use `deleted` to permanently remove a task.
+
+---
+
+## Task Dependencies
+
+When a blocking task is completed, blocked tasks are automatically unblocked:
+
+```javascript
+// Create pipeline
+TaskCreate({ subject: "Step 1: Research" })        // #1
+TaskCreate({ subject: "Step 2: Implement" })       // #2
+TaskCreate({ subject: "Step 3: Test" })            // #3
+TaskCreate({ subject: "Step 4: Deploy" })          // #4
+
+// Set up dependencies
+TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })   // #2 waits for #1
+TaskUpdate({ taskId: "3", addBlockedBy: ["2"] })   // #3 waits for #2
+TaskUpdate({ taskId: "4", addBlockedBy: ["3"] })   // #4 waits for #3
+
+// When #1 completes, #2 auto-unblocks
+// When #2 completes, #3 auto-unblocks
+// etc.
+```
+
+**Fan-in dependencies** (multiple blockers):
+```javascript
+TaskUpdate({ taskId: "5", addBlockedBy: ["3", "4"] })  // #5 waits for BOTH #3 AND #4
+```
+
+---
+
+## Task Claiming and File Locking
+
+Task claiming uses **file locking** to prevent race conditions when multiple teammates try to claim the same task simultaneously. This is handled automatically by `TaskUpdate`.
+
+**Self-claim workflow:**
+1. Call `TaskList()` to see available tasks
+2. Find a task with status `pending`, no owner, and empty `blockedBy`
+3. Claim it: `TaskUpdate({ taskId: "X", owner: "your-name" })`
+4. Start it: `TaskUpdate({ taskId: "X", status: "in_progress" })`
+5. Do the work
+6. Complete it: `TaskUpdate({ taskId: "X", status: "completed" })`
+
+If two teammates try to claim the same task simultaneously, one will succeed and the other will see the task is already owned.
+
+---
+
+## Task Status Lag
+
+> **Known limitation:** Teammates sometimes fail to mark tasks as completed, which blocks dependent tasks. If a task appears stuck, check whether the work is actually done and update the task status manually, or tell the lead to nudge the teammate.
+
+---
+
+## Task File Structure
+
+`~/.claude/tasks/{team-name}/1.json`:
+```json
+{
+  "id": "1",
+  "subject": "Review authentication module",
+  "description": "Review all files in app/services/auth/...",
+  "status": "in_progress",
+  "owner": "security-reviewer",
+  "activeForm": "Reviewing auth module...",
+  "blockedBy": [],
+  "blocks": ["3"],
+  "createdAt": 1706000000000,
+  "updatedAt": 1706000001000
+}
+```
+
+---
+
+## Task Sizing Best Practices
+
+- **Too small**: coordination overhead exceeds the benefit
+- **Too large**: teammates work too long without check-ins, increasing risk of wasted effort
+- **Just right**: self-contained units that produce a clear deliverable (a function, a test file, a review)
+
+**Tip:** Having 5-6 tasks per teammate keeps everyone productive and lets the lead reassign work if someone gets stuck.

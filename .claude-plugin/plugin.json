@@ -1,0 +1,11 @@
+{
+  "name": "swarm",
+  "description": "Multi-agent orchestration for Claude Code. Coordinate teams of agents with shared tasks, messaging, and proven patterns for parallel reviews, pipelines, and self-organizing swarms.",
+  "version": "1.0.0",
+  "author": {
+    "name": "zircote"
+  },
+  "homepage": "https://github.com/zircote/claude-team-orchestration",
+  "repository": "https://github.com/zircote/claude-team-orchestration",
+  "license": "MIT"
+}

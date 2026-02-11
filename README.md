@@ -7,7 +7,7 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-plugin-7c3aed)](https://code.claude.com/docs/en/plugins)
 [![Agent Teams](https://img.shields.io/badge/agent_teams-experimental-f59e0b)](https://code.claude.com/docs/en/agent-teams)
-[![Version](https://img.shields.io/badge/version-1.1.0-22d3ee)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-22d3ee)](CHANGELOG.md)
 [![RLM Pattern](https://img.shields.io/badge/RLM-arXiv:2512.24601-b31b1b.svg)](https://arxiv.org/abs/2512.24601)
 
 Multi-agent orchestration plugin for [Claude Code](https://claude.com/claude-code). Coordinate teams of agents with shared tasks, inter-agent messaging, and proven patterns for parallel reviews, pipelines, self-organizing swarms, and large-file analysis via the [RLM pattern](https://arxiv.org/abs/2512.24601).
@@ -168,7 +168,7 @@ All skills are available under the `swarm:` namespace.
 | [Orchestration Patterns](skills/orchestration-patterns/SKILL.md) | `swarm:orchestration-patterns` | 7 patterns: parallel specialists, pipelines, swarms, research+implement, plan approval, refactoring, RLM |
 | [Spawn Backends](skills/spawn-backends/SKILL.md) | `swarm:spawn-backends` | In-process, tmux, iTerm2 backends, auto-detection, configuration |
 | [Error Handling](skills/error-handling/SKILL.md) | `swarm:error-handling` | Common errors, quality gate hooks, known limitations, recovery strategies |
-| [RLM Pattern](skills/rlm-pattern/SKILL.md) | `swarm:rlm-pattern` | Chunked analysis of large files using RLM (Recursive Language Model) pattern |
+| [RLM Pattern](skills/rlm-pattern/SKILL.md) | `swarm:rlm-pattern` | Content-aware chunked analysis of large files and directories using RLM pattern |
 
 ---
 
@@ -179,6 +179,7 @@ All skills are available under the `swarm:` namespace.
 | [Getting Started](docs/getting-started.md) | End-to-end walkthrough from install to first team run |
 | [Agent Types](docs/agent-types.md) | Which agents are available and when to use each |
 | [Patterns](docs/patterns.md) | Orchestration patterns with guidance on when to pick which |
+| [RLM Examples](docs/rlm-examples.md) | Copy-paste example prompts for every RLM mode |
 | [Troubleshooting](docs/troubleshooting.md) | Common failures and fixes |
 
 ---

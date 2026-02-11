@@ -209,33 +209,173 @@ Task({ team_name: "codebase-review", name: "worker-3", subagent_type: "general-p
 
 **Scenario:** Analyze an 8500-line production log for error patterns and root causes.
 
-**Prompt:**
+```javascript
+// === STEP 1: ASSESS AND PARTITION ===
+// Team lead checks file size — 8500 lines, too large for context
+// Team lead uses Grep to scout for error-dense regions
+// Decides on 8 chunks of ~1100 lines with 50-line overlap
+
+// === STEP 2: CREATE TEAM AND TASKS ===
+TeamCreate({ team_name: "rlm-log-analysis", description: "RLM analysis of production.log" })
+
+// One task per partition
+TaskCreate({ subject: "Analyze chunk 1/8", description: "File: /var/log/production.log\nStart line: 1\nEnd line: 1100\nQuery: Identify error patterns, categorize by type, note timestamps and frequency.", activeForm: "Analyzing chunk 1..." })
+TaskCreate({ subject: "Analyze chunk 2/8", description: "File: /var/log/production.log\nStart line: 1051\nEnd line: 2150\nQuery: Identify error patterns, categorize by type, note timestamps and frequency.", activeForm: "Analyzing chunk 2..." })
+// ... TaskCreate for chunks 3-8
+
+// === STEP 3: SPAWN ANALYST TEAMMATES ===
+const analystPrompt = `You are an RLM chunk analyst on team "rlm-log-analysis".
+Workflow:
+1. Call TaskList to find pending tasks with no owner
+2. Claim a task with TaskUpdate (set owner to your name, status to in_progress)
+3. Read the file chunk described in the task (use Read with offset/limit)
+4. Analyze for: error types, frequency counts, temporal patterns, outliers
+5. Mark task completed with TaskUpdate
+6. Send JSON findings to team-lead via SendMessage
+7. Check TaskList for more work — repeat until no tasks remain
+8. When done, message team-lead: "All assigned tasks complete"`
+
+Task({ team_name: "rlm-log-analysis", name: "analyst-1", subagent_type: "swarm:rlm-chunk-analyzer", prompt: analystPrompt, run_in_background: true })
+Task({ team_name: "rlm-log-analysis", name: "analyst-2", subagent_type: "swarm:rlm-chunk-analyzer", prompt: analystPrompt, run_in_background: true })
+Task({ team_name: "rlm-log-analysis", name: "analyst-3", subagent_type: "swarm:rlm-chunk-analyzer", prompt: analystPrompt, run_in_background: true })
+
+// === STEP 4: COLLECT AND SYNTHESIZE ===
+// Analyst messages arrive automatically in team-lead's inbox
+// Once all analysts report, synthesize (directly or via synthesizer teammate)
+
+Task({
+  team_name: "rlm-log-analysis",
+  name: "synthesizer",
+  subagent_type: "swarm:rlm-synthesizer",
+  prompt: `Original query: Identify error patterns and root causes.\n\nFindings:\n${collectedFindings}\n\nSend consolidated report to team-lead via SendMessage.`,
+  run_in_background: true
+})
+
+// === STEP 5: SHUTDOWN AND CLEANUP ===
+SendMessage({ type: "shutdown_request", recipient: "analyst-1", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "analyst-2", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "analyst-3", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "synthesizer", content: "Done" })
+// Wait for approvals...
+TeamDelete()
 ```
-Analyze production.log (8500 lines) for error patterns and root causes.
-
-1. Team Lead: Determine file size. If too large for context, partition into
-   ~10 chunks of 200 lines each (with 20-line overlap). Use Grep to scout
-   for error-dense regions first — only create chunks for relevant sections.
-
-2. Each of 3-5 Analyst agents: Read your assigned chunk(s), identify error
-   patterns, categorize by type (database, auth, memory, etc.), note
-   timestamps and frequency, and report structured findings back to team-lead.
-
-3. Team Lead: Synthesize all analyst reports into a consolidated analysis with:
-   - Error pattern summary ranked by frequency
-   - Root cause analysis with cascading failure chains
-   - Timeline of events
-   - Recommendations for prevention
-```
-
-**What happens:**
-1. Team lead checks file size with `wc -l` — 8500 lines, too large
-2. Team lead uses Grep to find error clusters (lines 2000-4000 and 7000-8000)
-3. Team lead creates team and spawns 3-5 analyst agents with targeted line ranges
-4. Each analyst reads their chunk, analyzes for errors, and messages findings to team lead
-5. Team lead collects all reports and produces the consolidated analysis
-6. Team shuts down and cleans up
 
 **Agent recommendations:**
 - Analysts: `swarm:rlm-chunk-analyzer` (Haiku — fast and cheap for per-chunk analysis)
 - Synthesizer (optional): `swarm:rlm-synthesizer` (Sonnet — for complex cross-chunk synthesis)
+
+**Key:** Analysts are spawned as **teammates** (`team_name` + `name`), not plain subagents. They communicate via `SendMessage` and claim work from the shared `TaskList`. This prevents analyst output from flooding the team lead's context.
+
+---
+
+## Workflow 5: Multi-File Directory Analysis
+
+**Scenario:** Analyze a project directory with mixed content types — Python source, JSON config, and CSV data — for code quality, data issues, and cross-file concerns.
+
+```javascript
+// === STEP 1: ENUMERATE AND CLASSIFY ===
+// Team lead uses Glob to list files, detects content type per file
+// Files: api_server.py (1900 lines), models.py (3200 lines), config.json (250 lines),
+//        schema.json (180 lines), users.csv (8000 lines), README.md (300 lines)
+
+// === STEP 2: PARTITION BUDGET ===
+// api_server.py: Medium tier → 3 partitions
+// models.py: Medium tier → 4 partitions
+// users.csv: Large tier → 5 partitions
+// config.json + schema.json: Small → batch as 1 JSON task
+// README.md: Small → 1 general task (or exclude)
+// Total: 12 partitioned + 1 batched = 13 analyst tasks
+
+// === STEP 3: CREATE TEAM AND TASKS ===
+TeamCreate({ team_name: "rlm-project-review", description: "Multi-file RLM analysis of /project/src/" })
+
+// Code partition tasks (7 tasks)
+TaskCreate({ subject: "Analyze api_server.py chunk 1/3", description: "Mode: multi-file\nQuery: Review for code quality and security\nFile: /tmp/rlm-chunks/api-chunk-01.py\nLanguage: python\nAnalysis focus: general", activeForm: "Analyzing api_server chunk 1..." })
+TaskCreate({ subject: "Analyze api_server.py chunk 2/3", description: "Mode: multi-file\nQuery: Review for code quality and security\nFile: /tmp/rlm-chunks/api-chunk-02.py\nLanguage: python\nAnalysis focus: general", activeForm: "Analyzing api_server chunk 2..." })
+TaskCreate({ subject: "Analyze api_server.py chunk 3/3", description: "Mode: multi-file\nQuery: Review for code quality and security\nFile: /tmp/rlm-chunks/api-chunk-03.py\nLanguage: python\nAnalysis focus: general", activeForm: "Analyzing api_server chunk 3..." })
+TaskCreate({ subject: "Analyze models.py chunk 1/4", description: "Mode: multi-file\nQuery: Review for code quality and security\nFile: /tmp/rlm-chunks/models-chunk-01.py\nLanguage: python\nAnalysis focus: general", activeForm: "Analyzing models chunk 1..." })
+// ... TaskCreate for models chunks 2-4
+
+// CSV partition tasks (5 tasks)
+TaskCreate({ subject: "Analyze users.csv chunk 1/5", description: "Mode: multi-file\nQuery: Analyze data quality and distributions\nFile: /tmp/rlm-chunks/users-chunk-01.csv\nThis is chunk 1 of 5.", activeForm: "Analyzing users.csv chunk 1..." })
+// ... TaskCreate for users.csv chunks 2-5
+
+// JSON batch task (1 task)
+TaskCreate({ subject: "Analyze JSON configs", description: "Mode: multi-file\nQuery: Review configuration for issues\nBatch: 2 JSON files (combined 430 lines)\n\n--- FILE 1: /project/src/config.json (250 lines) ---\nRead with: Read({ file_path: \"/project/src/config.json\" })\n\n--- FILE 2: /project/src/schema.json (180 lines) ---\nRead with: Read({ file_path: \"/project/src/schema.json\" })", activeForm: "Analyzing JSON configs..." })
+
+// === STEP 4: SPAWN MIXED ANALYST TEAMMATES ===
+// Analyst mix: 3 code, 2 data, 1 JSON = 6 total
+
+const codePrompt = `You are an RLM code analyst on team "rlm-project-review".
+Workflow:
+1. Call TaskList — claim tasks containing "Analysis focus" (code tasks)
+2. Read the chunk file, analyze per query
+3. Write JSON findings to task description via TaskUpdate (Mode: multi-file)
+4. Send one-line summary to team-lead via SendMessage
+5. Repeat until no code tasks remain`
+
+const dataPrompt = `You are an RLM data analyst on team "rlm-project-review".
+Workflow:
+1. Call TaskList — claim tasks containing ".csv" (data tasks)
+2. Read the chunk, report distributions and anomalies
+3. Write JSON findings to task description via TaskUpdate (Mode: multi-file)
+4. Send one-line summary to team-lead via SendMessage
+5. Repeat until no data tasks remain`
+
+const jsonPrompt = `You are an RLM JSON analyst on team "rlm-project-review".
+Workflow:
+1. Call TaskList — claim tasks containing "JSON" (JSON tasks)
+2. Read the files, report schema patterns
+3. Write JSON findings to task description via TaskUpdate (Mode: multi-file)
+4. Send one-line summary to team-lead via SendMessage
+5. When done, notify team-lead`
+
+Task({ team_name: "rlm-project-review", name: "code-analyst-1", subagent_type: "swarm:rlm-code-analyzer", prompt: codePrompt, run_in_background: true })
+Task({ team_name: "rlm-project-review", name: "code-analyst-2", subagent_type: "swarm:rlm-code-analyzer", prompt: codePrompt, run_in_background: true })
+Task({ team_name: "rlm-project-review", name: "code-analyst-3", subagent_type: "swarm:rlm-code-analyzer", prompt: codePrompt, run_in_background: true })
+Task({ team_name: "rlm-project-review", name: "data-analyst-1", subagent_type: "swarm:rlm-data-analyzer", prompt: dataPrompt, run_in_background: true })
+Task({ team_name: "rlm-project-review", name: "data-analyst-2", subagent_type: "swarm:rlm-data-analyzer", prompt: dataPrompt, run_in_background: true })
+Task({ team_name: "rlm-project-review", name: "json-analyst-1", subagent_type: "swarm:rlm-json-analyzer", prompt: jsonPrompt, run_in_background: true })
+
+// === STEP 5: WAIT FOR ANALYSTS, THEN CREATE SYNTHESIS TASKS ===
+// Run /compact here to clear analyst notification messages
+
+// Phase 1: Per-type synthesis (parallel)
+TaskCreate({ subject: "Synthesize Python findings", description: "Mode: per-type synthesis\nContent type: source_code\nAnalyst task IDs: [1, 2, 3, 4, 5, 6, 7]\n\nRead findings from each task via TaskGet. Aggregate into type-level summary. Write to this task's description.", activeForm: "Synthesizing code findings..." })  // → e.g. task 14
+TaskCreate({ subject: "Synthesize CSV findings", description: "Mode: per-type synthesis\nContent type: structured_data\nAnalyst task IDs: [8, 9, 10, 11, 12]\n\nRead findings from each task via TaskGet. Aggregate into type-level summary. Write to this task's description.", activeForm: "Synthesizing data findings..." })  // → e.g. task 15
+TaskCreate({ subject: "Synthesize JSON findings", description: "Mode: per-type synthesis\nContent type: json\nAnalyst task IDs: [13]\n\nRead findings from task via TaskGet. Write summary to this task's description.", activeForm: "Synthesizing JSON findings..." })  // → e.g. task 16
+
+// Phase 2: Cross-type synthesis (blocked by Phase 1)
+TaskCreate({ subject: "Cross-type synthesis", description: "Mode: cross-type synthesis\nPer-type synthesis task IDs: [14, 15, 16]\nOriginal query: Review project for code quality, data issues, and cross-file concerns\n\nRead per-type summaries via TaskGet. Produce final report. Send to team-lead.", activeForm: "Final synthesis..." })  // → task 17
+TaskUpdate({ taskId: "17", addBlockedBy: ["14", "15", "16"] })
+
+// Spawn synthesizer for Phase 1 tasks
+Task({
+  team_name: "rlm-project-review",
+  name: "synthesizer",
+  subagent_type: "swarm:rlm-synthesizer",
+  prompt: `You are the synthesizer on team "rlm-project-review".
+Claim synthesis tasks from TaskList. Read analyst findings via TaskGet.
+Write summaries to task descriptions. When Phase 2 unblocks, complete it and send final report to team-lead.`,
+  run_in_background: true
+})
+
+// === STEP 6: SHUTDOWN AND CLEANUP ===
+// After final report received:
+SendMessage({ type: "shutdown_request", recipient: "code-analyst-1", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "code-analyst-2", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "code-analyst-3", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "data-analyst-1", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "data-analyst-2", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "json-analyst-1", content: "Done" })
+SendMessage({ type: "shutdown_request", recipient: "synthesizer", content: "Done" })
+// Wait for approvals...
+TeamDelete()
+```
+
+**Key differences from single-file RLM (Workflow 4):**
+- **Mixed analyst types** — code, data, and JSON analysts run simultaneously
+- **Findings in task descriptions** — analysts use `TaskUpdate` (not `SendMessage`) for findings
+- **Two-phase synthesis** — per-type summaries first, then cross-type final report
+- **Task dependencies** — Phase 2 synthesis blocked until all Phase 1 tasks complete
+- **Run `/compact`** between analyst and synthesis phases to manage context

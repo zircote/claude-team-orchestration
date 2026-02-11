@@ -2,6 +2,8 @@
 
   Use the RLM pattern: partition the data across analyst agents, analyze in parallel, synthesize.
 
+  > **Note:** The RLM pattern now auto-detects content types. For this CSV file, it will detect `structured_data` and route to `swarm:rlm-data-analyzer` agents with header-preserving chunks. See [swarm:rlm-pattern](../skills/rlm-pattern/SKILL.md) for content-type detection and routing details.
+
   1. Team Lead: Decompress and assess the dataset. Determine column structure and row count. Partition into 8-10 roughly equal CSV chunks (preserving the header row in each). Use Grep to scout for high-density error regions
    — prioritize partitions with the most incident volume.
 

@@ -30,7 +30,10 @@ Choose the right agent type for each role in your team. Agent types determine wh
 | Best practices research | **adr:adr-researcher** | Codebase analysis + web research |
 | Deep code exploration | **feature-dev:code-explorer** | Trace execution paths, map architecture |
 | Code review | **feature-dev:code-reviewer** | Bugs, logic errors, conventions |
-| Chunk-level file analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
+| Source code chunk analysis | **swarm:rlm-code-analyzer** | Code-aware, scope context, analysis focus |
+| Data/CSV chunk analysis | **swarm:rlm-data-analyzer** | Column-aware, distributions, statistics |
+| JSON chunk analysis | **swarm:rlm-json-analyzer** | Schema-aware, structural patterns |
+| General chunk-level analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
 | Synthesize chunk findings | **swarm:rlm-synthesizer** | Sonnet, aggregation and deduplication |
 
 **Key rule:** Match the agent's tool access to the task requirements. Read-only agents (Explore, Plan) **cannot** edit or write files. Never assign them implementation work.
@@ -277,25 +280,58 @@ Task({
 
 ### RLM Agents
 
+Content-aware chunk analyzers — the Team Lead selects the analyst based on detected content type.
+
+**Single-file mode:** One analyst type per session (determined by content type).
+**Multi-file mode:** Different analyst types run simultaneously when a directory contains mixed content types. Max 6 analysts total, distributed proportionally to task counts per type. See [Multi-File Directory Analysis](../rlm-pattern/SKILL.md#multi-file-directory-analysis).
+
+**IMPORTANT:** In actual RLM workflows, spawn these as **teammates** (with `team_name` + `name`) so they communicate via `SendMessage` instead of dumping results into the leader's context. In multi-file mode, analysts write findings to task descriptions via `TaskUpdate` and send only one-line summaries to team-lead. See [RLM Pattern](../rlm-pattern/SKILL.md) for the full team lifecycle. The examples below show the `subagent_type` syntax only:
+
 ```javascript
-// Chunk analysis (fast, cheap) - RLM plugin agent
+// Source code analysis (code-aware boundaries)
+Task({
+  subagent_type: "swarm:rlm-code-analyzer",
+  description: "Analyze code chunk",
+  prompt: "Query: Review for security issues\nFile: /tmp/rlm-chunks/chunk-01.py\nLanguage: python\nAnalysis focus: security\nThis is chunk 1 of 10."
+})
+
+// CSV data analysis (header-preserving chunks)
+Task({
+  subagent_type: "swarm:rlm-data-analyzer",
+  description: "Analyze data chunk",
+  prompt: "Query: Analyze distribution by region\nFile: /tmp/rlm-chunks/chunk-03.csv\nThis is chunk 3 of 9.\nKey columns: region, plan, mrr"
+})
+
+// JSON analysis (schema-aware chunks)
+Task({
+  subagent_type: "swarm:rlm-json-analyzer",
+  description: "Analyze JSON chunk",
+  prompt: "Query: Report schema patterns and anomalies\nFile: /tmp/rlm-chunks/chunk-02.jsonl\nFormat: jsonl\nThis is chunk 2 of 8."
+})
+
+// General chunk analysis (logs, prose, config, other)
 Task({
   subagent_type: "swarm:rlm-chunk-analyzer",
   description: "Analyze log chunk",
-  prompt: "Read /path/to/file.log lines 1-200 and analyze for errors. Return JSON findings."
+  prompt: "Query: What errors occurred?\nFile: /var/log/app/server.log\nStart line: 1\nEnd line: 200\nThis is chunk 1 of 10."
 })
 
-// Synthesis (higher quality) - RLM plugin agent
+// Synthesis (higher quality)
 Task({
   subagent_type: "swarm:rlm-synthesizer",
   description: "Synthesize findings",
-  prompt: "Synthesize these chunk findings into a coherent report: [findings JSON]"
+  prompt: "Original query: What errors occurred?\n\nFindings:\n[...findings JSON...]"
 })
 ```
 
 **RLM agents (defined by this plugin):**
-- `swarm:rlm-chunk-analyzer` — Haiku model, reads file chunks via Read with offset/limit, returns structured JSON findings
+- `swarm:rlm-code-analyzer` — Haiku model, code-aware chunk analysis with scope context and analysis focus
+- `swarm:rlm-data-analyzer` — Haiku model, CSV/TSV chunk analysis with column distributions and statistics
+- `swarm:rlm-json-analyzer` — Haiku model, JSON/JSONL chunk analysis with schema patterns and field distributions
+- `swarm:rlm-chunk-analyzer` — Haiku model, general-purpose chunk analysis for logs, prose, config, markup
 - `swarm:rlm-synthesizer` — Sonnet model, aggregates findings from multiple chunk analyses into coherent reports
+
+**Do NOT override analyst models.** Do not pass `model: "sonnet"` or `model: "opus"` in the Task tool call when spawning analyst agents. The agent frontmatter defines `model: haiku` because structured counting, frequency analysis, and JSON output are well within Haiku's capability. Overriding to a more expensive model burns 10-50x the cost per chunk with no material quality gain. Only the synthesizer uses Sonnet. Leave the `model` parameter unset — let the agent definition's default apply.
 
 ---
 
@@ -312,5 +348,8 @@ Examples:
 Built-in agents use simple names: `Bash`, `Explore`, `Plan`, `general-purpose`, `claude-code-guide`, `statusline-setup`.
 
 Swarm plugin agents follow the same convention:
+- `swarm:rlm-code-analyzer`
+- `swarm:rlm-data-analyzer`
+- `swarm:rlm-json-analyzer`
 - `swarm:rlm-chunk-analyzer`
 - `swarm:rlm-synthesizer`

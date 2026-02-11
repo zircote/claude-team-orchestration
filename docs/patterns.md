@@ -179,37 +179,49 @@ Workers 1 and 2 can work in parallel. Worker 3 waits for both to finish.
 
 ## RLM (Recursive Language Model)
 
-Divide large files into partitions, analyze each with parallel analyst agents, then synthesize.
+Divide large files into partitions, analyze each with parallel analyst agents, then synthesize. Supports content-aware chunking (code, CSV, JSON, logs, prose) and multi-file directory analysis.
 
-**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content > ~2000 lines.
+**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content > ~2000 lines. Also: directory analysis with mixed content types needing cross-file insights.
 
-**Example prompt:**
+**Example prompt (single file):**
 ```
 Analyze this 8000-line production log for error patterns.
-Partition it into 8 chunks. Spawn 8 analyst agents to review
+Partition it into 8 chunks. Spawn analyst agents to review
 each partition in parallel. Each analyst reports: error types,
 frequency counts, temporal patterns, and outliers.
-Synthesize all 8 reports into a consolidated analysis.
+Synthesize all reports into a consolidated analysis.
+```
+
+**Example prompt (multi-file directory):**
+```
+Use the multi-file RLM pattern to analyze the src/ directory.
+Detect content types per file, partition by type-specific strategies,
+spawn mixed analyst types, and produce a cross-file synthesis.
 ```
 
 **How it works:**
-1. Team lead assesses file size and determines partitioning strategy
-2. Team lead divides content into chunks (line ranges, file splits, or logical partitions)
-3. Analyst agents (3-10) each analyze one partition independently
+1. Team lead detects content type per file and determines partitioning strategy
+2. Team lead divides content into chunks (code: function boundaries, CSV: row splits with header, JSON: element splits, logs: line ranges)
+3. Content-type-specific analyst agents analyze partitions in parallel
 4. Each analyst reports structured findings back to team lead
 5. Team lead (or a dedicated synthesizer agent) combines all reports
 6. Shutdown and cleanup
 
 **Key details:**
-- Describe roles and workflow — team lead divides, analysts analyze, team lead synthesizes
-- Pass file paths and line ranges — never paste content into prompts
-- Use Grep scouting to skip irrelevant regions (can reduce work by 80%)
-- Keep partition count to 5-10 to avoid context overflow
-- See [swarm:rlm-pattern](../skills/rlm-pattern/SKILL.md) for partitioning strategies and team composition
+- Automatic content-type detection (extension mapping + content sniffing)
+- Type-specific partitioning preserves semantic boundaries (functions, CSV headers, valid JSON)
+- Content-type-specific analysts: code, data, JSON, general-purpose
+- For multi-file directories: small files batched by type, two-phase synthesis (per-type then cross-type), findings written to task descriptions to protect Team Lead context
+- See [swarm:rlm-pattern](../skills/rlm-pattern/SKILL.md) for full documentation
 
 **Agent recommendations:**
-- Analysts: `swarm:rlm-chunk-analyzer` (Haiku)
+- Source code: `swarm:rlm-code-analyzer` (Haiku)
+- CSV/TSV data: `swarm:rlm-data-analyzer` (Haiku)
+- JSON/JSONL: `swarm:rlm-json-analyzer` (Haiku)
+- Logs/prose/config: `swarm:rlm-chunk-analyzer` (Haiku)
 - Synthesizer: `swarm:rlm-synthesizer` (Sonnet)
+
+**Do NOT override analyst models.** Leave `model` unset — Haiku is correct for structured analysis.
 
 ---
 

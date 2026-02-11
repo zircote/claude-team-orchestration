@@ -20,7 +20,10 @@ Which agents are available and when to use each. Match the agent's tool access t
 | Best practices research | **adr:adr-researcher** | Codebase analysis + web research |
 | Deep code exploration | **feature-dev:code-explorer** | Trace execution paths, map architecture |
 | Code review | **feature-dev:code-reviewer** | Bugs, logic errors, conventions |
-| Chunk-level file analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
+| Source code chunk analysis | **swarm:rlm-code-analyzer** | Code-aware, scope context, analysis focus |
+| Data/CSV chunk analysis | **swarm:rlm-data-analyzer** | Column-aware, distributions, statistics |
+| JSON chunk analysis | **swarm:rlm-json-analyzer** | Schema-aware, structural patterns |
+| General chunk analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
 | Synthesize chunk findings | **swarm:rlm-synthesizer** | Sonnet, aggregation and deduplication |
 
 **Key rule:** Read-only agents (Explore, Plan) **cannot** edit or write files. Never assign them implementation work.
@@ -127,10 +130,17 @@ Available when the corresponding plugins are installed. Plugin agents use the fo
 
 ### RLM Agents
 
+Content-aware chunk analyzers — the Team Lead selects the analyst based on detected content type. In multi-file directory analysis, different analyst types run simultaneously.
+
 | Agent | Focus |
 |-------|-------|
-| `swarm:rlm-chunk-analyzer` | Read file chunks via offset/limit, return structured JSON findings (Haiku) |
+| `swarm:rlm-code-analyzer` | Source code analysis with function/class scope context, analysis focus (Haiku) |
+| `swarm:rlm-data-analyzer` | CSV/TSV analysis with column distributions and statistics (Haiku) |
+| `swarm:rlm-json-analyzer` | JSON/JSONL analysis with schema patterns and field distributions (Haiku) |
+| `swarm:rlm-chunk-analyzer` | General-purpose: logs, prose, config, markup (Haiku) |
 | `swarm:rlm-synthesizer` | Aggregate chunk findings into coherent reports (Sonnet) |
+
+**Do NOT override analyst models.** Leave the `model` parameter unset when spawning — agent definitions default to Haiku, which is correct for structured analysis tasks.
 
 ---
 

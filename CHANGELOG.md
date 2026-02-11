@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-11
+
+### Added
+
+- **Content-Aware RLM**: Automatic content-type detection (extension mapping + content sniffing) and type-specific chunking strategies. Design document at `docs/design/content-aware-rlm.md`
+- **New agents** (`agents/`):
+  - `swarm:rlm-code-analyzer` — Haiku-powered source code analyzer with function/class scope context, severity levels, and configurable analysis focus (general, security, architecture, performance)
+  - `swarm:rlm-data-analyzer` — Haiku-powered CSV/TSV analyzer with column-aware distributions, statistics, and aggregatable frequency counts
+  - `swarm:rlm-json-analyzer` — Haiku-powered JSON/JSONL analyzer with schema pattern detection, field distributions, and type consistency checks
+- **Multi-File Directory RLM**: Extension of single-file RLM to process entire directories with mixed content types in one team session. Design document at `docs/design/multi-file-rlm.md`
+  - Per-file content-type detection and mixed analyst routing
+  - Tiered partition budget (small/medium/large) with 30-partition global cap
+  - Small file batching by content type
+  - Two-phase synthesis: per-type (parallel) then cross-type (sequential) via task dependencies
+  - Findings-in-task-descriptions pattern to protect Team Lead context
+  - Max 6 analysts across all types
+- **Workflow 5: Multi-File Directory Analysis** (`skills/orchestration-patterns/examples/complete-workflows.md`): End-to-end example with mixed analyst types, two-phase synthesis, and task dependency wiring
+
+### Changed
+
+- Updated `skills/rlm-pattern/SKILL.md` with content-type detection, type-specific partitioning strategies, agent routing matrix, content-aware team composition, and multi-file directory analysis section
+- Updated `skills/agent-types/SKILL.md` with 3 new content-aware RLM agents and multi-file mixed-type usage note
+- Updated `skills/orchestration-patterns/SKILL.md` Pattern 7 with content-aware agent recommendations and multi-file variant
+- Updated `agents/rlm-chunk-analyzer.md` with role scope note (general-purpose analyzer for logs, prose, config) and multi-file mode workflow
+- Updated `agents/rlm-synthesizer.md` with heterogeneous findings support, TaskGet/TaskUpdate tools, and multi-file synthesis modes (per-type and cross-type)
+- Updated all 4 analyst agents with multi-file mode reporting (findings to task descriptions via TaskUpdate)
+- Updated `docs/agent-types.md`, `docs/patterns.md` to reflect content-aware and multi-file capabilities
+- Updated `docs/design/content-aware-rlm.md` Future Considerations with forward reference to multi-file design
+- Added analyst model override guardrails to `skills/rlm-pattern/SKILL.md` and `skills/agent-types/SKILL.md`
+
 ## [1.1.0] - 2026-02-10
 
 ### Added
@@ -54,3 +84,4 @@ Based on the [Claude Code Swarm Orchestration Skill](https://gist.github.com/kie
 
 [1.0.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.0.0
 [1.1.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.1.0
+[1.2.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.0

@@ -7,7 +7,7 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-plugin-7c3aed)](https://code.claude.com/docs/en/plugins)
 [![Agent Teams](https://img.shields.io/badge/agent_teams-experimental-f59e0b)](https://code.claude.com/docs/en/agent-teams)
-[![Version](https://img.shields.io/badge/version-1.2.0-22d3ee)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.1-22d3ee)](CHANGELOG.md)
 [![RLM Pattern](https://img.shields.io/badge/RLM-arXiv:2512.24601-b31b1b.svg)](https://arxiv.org/abs/2512.24601)
 
 Multi-agent orchestration plugin for [Claude Code](https://claude.com/claude-code). Coordinate teams of agents with shared tasks, inter-agent messaging, and proven patterns for parallel reviews, pipelines, self-organizing swarms, and large-file analysis via the [RLM pattern](https://arxiv.org/abs/2512.24601).

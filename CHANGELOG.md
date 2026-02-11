@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-02-11
+
+### Added
+
+- **RLM Examples Guide** (`docs/rlm-examples.md`): Copy-paste example prompts for all 6 RLM modes (basic, code-aware, CSV, JSON, directory, multi-type) with feature comparison table and sizing guidelines
+
 ## [1.2.0] - 2026-02-11
 
 ### Added
@@ -22,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Findings-in-task-descriptions pattern to protect Team Lead context
   - Max 6 analysts across all types
 - **Workflow 5: Multi-File Directory Analysis** (`skills/orchestration-patterns/examples/complete-workflows.md`): End-to-end example with mixed analyst types, two-phase synthesis, and task dependency wiring
-- **RLM Examples Guide** (`docs/rlm-examples.md`): Copy-paste example prompts for all 6 RLM modes (basic, code-aware, CSV, JSON, directory, multi-type) with feature comparison table and sizing guidelines
 
 ### Changed
 
@@ -86,3 +91,4 @@ Based on the [Claude Code Swarm Orchestration Skill](https://gist.github.com/kie
 [1.0.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.0.0
 [1.1.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.1.0
 [1.2.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.0
+[1.2.1]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.1

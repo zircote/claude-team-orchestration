@@ -1,7 +1,7 @@
 {
   "name": "swarm",
   "description": "Multi-agent orchestration for Claude Code. Coordinate teams of agents with shared tasks, messaging, and 7 proven patterns including RLM for large-file analysis beyond context limits.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": {
     "name": "zircote"
   },

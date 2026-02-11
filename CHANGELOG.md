@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Findings-in-task-descriptions pattern to protect Team Lead context
   - Max 6 analysts across all types
 - **Workflow 5: Multi-File Directory Analysis** (`skills/orchestration-patterns/examples/complete-workflows.md`): End-to-end example with mixed analyst types, two-phase synthesis, and task dependency wiring
+- **RLM Examples Guide** (`docs/rlm-examples.md`): Copy-paste example prompts for all 6 RLM modes (basic, code-aware, CSV, JSON, directory, multi-type) with feature comparison table and sizing guidelines
 
 ### Changed
 

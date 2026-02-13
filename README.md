@@ -156,7 +156,7 @@ For more examples, see [docs/patterns.md](docs/patterns.md) and [skills/orchestr
 
 ## Recommended CLAUDE.md Configuration
 
-To get the most out of swarm orchestration, add the following to your project's `CLAUDE.md` (or your personal `~/.claude-personal/CLAUDE.md`). This tells Claude to prefer parallel agent teams over sequential work whenever appropriate:
+To get the most out of swarm orchestration, add the following to your project's `CLAUDE.md` (or your personal `~/.claude/CLAUDE.md`). This tells Claude to prefer parallel agent teams over sequential work whenever appropriate:
 
 ```markdown
 ## Always use swarm orchestration patterns (TeamCreate, Task with team_name, SendMessage, TaskCreate/TaskUpdate) when work is best executed by parallel specialist agents.
@@ -171,7 +171,7 @@ This means:
 
 **Where to put it:**
 - **Project-level** (`CLAUDE.md` at your project root) — applies to all sessions in that project
-- **Personal global** (`~/.claude-personal/CLAUDE.md`) — applies to all your projects
+- **Personal global** (`~/.claude/CLAUDE.md`) — applies to all your projects
 
 ---
 

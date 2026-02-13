@@ -69,7 +69,7 @@ Look for skills under the `swarm:` namespace. You should see entries like `swarm
 
 ## 4. Configure CLAUDE.md (recommended)
 
-Add the following to your project's `CLAUDE.md` (or `~/.claude-personal/CLAUDE.md` for all projects) to tell Claude to prefer parallel agent teams when work can be parallelized:
+Add the following to your project's `CLAUDE.md` (or `~/.claude/CLAUDE.md` for all projects) to tell Claude to prefer parallel agent teams when work can be parallelized:
 
 ```markdown
 ## Always use swarm orchestration patterns (TeamCreate, Task with team_name, SendMessage, TaskCreate/TaskUpdate) when work is best executed by parallel specialist agents.
@@ -82,7 +82,7 @@ This means:
 
 Without this, Claude may run tasks sequentially or use simple subagents rather than coordinated teams. This instruction ensures Claude proactively spawns teams when appropriate.
 
-> **Tip:** If you only want swarm behavior in specific projects, put it in the project-level `CLAUDE.md`. For global behavior across all projects, put it in `~/.claude-personal/CLAUDE.md`.
+> **Tip:** If you only want swarm behavior in specific projects, put it in the project-level `CLAUDE.md`. For global behavior across all projects, put it in `~/.claude/CLAUDE.md`.
 
 ---
 

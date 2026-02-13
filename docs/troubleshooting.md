@@ -221,7 +221,7 @@ This means:
   - Preferring concurrent execution over sequential when tasks are independent
 ```
 
-Place this in your project-level `CLAUDE.md` or `~/.claude-personal/CLAUDE.md`. This tells Claude to prefer parallel teams when work is parallelizable.
+Place this in your project-level `CLAUDE.md` or your user-level `~/.claude/CLAUDE.md`. This tells Claude to prefer parallel teams when work is parallelizable.
 
 ### Lead starts implementing instead of delegating
 

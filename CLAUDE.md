@@ -4,7 +4,7 @@
 
 **swarm** — A Claude Code plugin for multi-agent orchestration. Coordinates teams of agents with shared tasks, inter-agent messaging, and 7 proven patterns including RLM for large-file analysis.
 
-- **Version:** 1.2.1
+- **Version:** 1.2.2
 - **License:** MIT
 - **Plugin namespace:** `swarm:`
 
@@ -62,7 +62,7 @@ docs/                        # User-facing documentation
 - 4 analyst types: code, data, JSON, chunk (general). All run on Haiku.
 - Synthesizer runs on Sonnet. Do not override analyst models.
 - Multi-file mode: batches small files by type, two-phase synthesis
-- 30-partition global cap, max 6 analysts across all types
+- Data-driven partition sizing (scales with input size), analyst count scales to task volume
 
 ## Writing New Skills
 

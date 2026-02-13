@@ -283,7 +283,7 @@ Task({
 Content-aware chunk analyzers — the Team Lead selects the analyst based on detected content type.
 
 **Single-file mode:** One analyst type per session (determined by content type).
-**Multi-file mode:** Different analyst types run simultaneously when a directory contains mixed content types. Max 6 analysts total, distributed proportionally to task counts per type. See [Multi-File Directory Analysis](../rlm-pattern/SKILL.md#multi-file-directory-analysis).
+**Multi-file mode:** Different analyst types run simultaneously when a directory contains mixed content types. Analyst count scales to total task volume (1 per 3-5 tasks), distributed proportionally across content types. See [Multi-File Directory Analysis](../rlm-pattern/SKILL.md#multi-file-directory-analysis).
 
 **IMPORTANT:** In actual RLM workflows, spawn these as **teammates** (with `team_name` + `name`) so they communicate via `SendMessage` instead of dumping results into the leader's context. In multi-file mode, analysts write findings to task descriptions via `TaskUpdate` and send only one-line summaries to team-lead. See [RLM Pattern](../rlm-pattern/SKILL.md) for the full team lifecycle. The examples below show the `subagent_type` syntax only:
 

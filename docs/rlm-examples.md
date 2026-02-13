@@ -185,7 +185,7 @@ Report data quality issues, distributions, and cross-file inconsistencies.
    - Small files (<=1500 lines): batched together, no splitting
    - Medium files (1501-5000 lines): 3-5 partitions each
    - Large files (>5000 lines): 5-10 partitions each
-4. Spawns one analyst type, up to 6 analysts total
+4. Spawns one analyst type, scaling analyst count to partition volume (1 per 3-5 partitions)
 5. Synthesizes findings across all files
 
 ---
@@ -223,9 +223,9 @@ and error handling.
 **What Claude does:**
 1. Enumerates and classifies every file by content type (extension + content sniffing)
 2. Groups files by type and applies per-type partitioning strategies
-3. Allocates a partition budget (30-partition global cap) with tiered sizing
+3. Allocates a data-driven partition budget with tiered sizing
 4. Batches small same-type files together to reduce task count
-5. Spawns mixed analyst types simultaneously (up to 4 different types, 6 analysts total):
+5. Spawns mixed analyst types simultaneously (up to 4 different types, scaled to task volume):
    - `swarm:rlm-code-analyzer` for source files
    - `swarm:rlm-data-analyzer` for CSV/TSV files
    - `swarm:rlm-json-analyzer` for JSON/JSONL files
@@ -310,7 +310,7 @@ Focus on the core business logic.
 | Small file batching | No | No | Yes | Yes |
 | Two-phase synthesis | No | No | No | Yes |
 | Cross-file correlation | No | No | Limited | Yes |
-| Partition budget | Manual | Auto (per type) | Auto (tiered) | Auto (tiered + global cap) |
+| Partition budget | Manual | Auto (per type) | Auto (tiered) | Auto (tiered + data-driven) |
 
 ---
 

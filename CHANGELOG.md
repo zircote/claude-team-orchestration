@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-02-13
+
+### Changed
+
+- Replaced hard caps (6 analysts, 30 partitions) in RLM pattern with data-driven scaling guidance
+  - Partition count now scales with data size using content-type chunk targets instead of a fixed 30-partition cap
+  - Analyst count scales to task volume (1 per 3-5 tasks) instead of a fixed 6-analyst cap
+  - CSV partitioning uses concrete row targets (~2000 rows narrow, ~500 rows wide) instead of "target 5-10 partitions"
+  - Practical ceilings framed as cost/context trade-offs (~50 partitions, ~15 analysts) rather than hard limits
+- Updated sizing guidance across `skills/rlm-pattern/SKILL.md`, `skills/orchestration-patterns/SKILL.md`, `skills/agent-types/SKILL.md`, `docs/rlm-examples.md`, `docs/design/multi-file-rlm.md`, and `CLAUDE.md`
+
 ## [1.2.1] - 2026-02-11
 
 ### Added
@@ -91,4 +102,5 @@ Based on the [Claude Code Swarm Orchestration Skill](https://gist.github.com/kie
 [1.0.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.0.0
 [1.1.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.1.0
 [1.2.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.0
+[1.2.2]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.2
 [1.2.1]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.1

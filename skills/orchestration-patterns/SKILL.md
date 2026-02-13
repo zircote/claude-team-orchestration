@@ -326,11 +326,11 @@ Task({ team_name: "rlm-analysis", name: "analyst-3", subagent_type: "swarm:rlm-c
 
 For directories with mixed content types, the RLM pattern extends to multi-file mode:
 - Per-file content-type detection and mixed analyst types in one team
-- Tiered partition budget (small/medium/large files) with global 30-partition cap
+- Tiered partition budget (small/medium/large files) with data-driven sizing
 - Small files of the same type batched into single analyst tasks
 - Two-phase synthesis: per-type (parallel) then cross-type (sequential)
 - Findings written to task descriptions (not SendMessage) to protect Team Lead context
-- Max 6 analysts across all types
+- Analyst count scales to task volume (1 per 3-5 tasks), distributed proportionally across types
 
 See [Multi-File Directory Analysis](../rlm-pattern/SKILL.md#multi-file-directory-analysis) for the full specification and [Multi-File RLM Design](../../docs/design/multi-file-rlm.md) for the design document.
 

@@ -51,7 +51,7 @@ This design extends the RLM pattern to accept a directory path, enumerate and cl
 | Partitioning | One strategy | Per-type strategy for each file |
 | Synthesis | Single phase (merge all) | Two phases: per-type then cross-type |
 | Context management | Findings via SendMessage | Findings in task descriptions via TaskUpdate |
-| Analyst cap | No explicit cap | Max 6 analysts total |
+| Analyst cap | No explicit cap | Scales to task volume (1 per 3-5 tasks) |
 
 ---
 
@@ -194,13 +194,9 @@ def allocate_budget(files):
             partitions = min(10, 5 + round((lines - 5001) / 10000 * 5))
             manifest.append({"file": f, "lines": lines, "type": content_type, "partitions": partitions, "tier": "large"})
 
-    # Apply global cap
-    total = sum(f["partitions"] for f in manifest)
-    if total > 30:
-        scale = 30 / total
-        for f in manifest:
-            if f["partitions"] > 0:
-                f["partitions"] = max(2, floor(f["partitions"] * scale))
+    # No hard cap — partition count is data-driven.
+    # If total is very large (50+), consider excluding low-priority files
+    # or batching more aggressively rather than artificially shrinking partitions.
 
     return manifest
 ```
@@ -274,29 +270,23 @@ After enumeration and type detection, the Team Lead has a manifest of files grou
    - json/jsonl tasks: partitions from JSON files + batches of small JSON files
    - general tasks: partitions from log/prose/config files + batches
 2. Only spawn analyst types that have tasks
-3. Distribute the 6-analyst cap proportional to task counts
+3. Scale analyst count to total tasks (1 per 3-5 tasks), distribute proportionally across types
 ```
 
 ### Spawning Strategy
 
-**Cap: 6 analysts total** (across all types). Distribute proportionally:
+Scale analyst count to total task count (target 1 analyst per 3-5 tasks), distributed proportionally across content types. At least 1 analyst per type that has tasks.
 
 ```python
-def plan_analysts(tasks_by_type, cap=6):
+def plan_analysts(tasks_by_type, tasks_per_analyst=4):
     total_tasks = sum(tasks_by_type.values())
+    target_analysts = max(1, ceil(total_tasks / tasks_per_analyst))
     analysts = {}
     for content_type, task_count in tasks_by_type.items():
         if task_count == 0:
             continue
         # At least 1 analyst per type, proportional to task share
-        raw = max(1, round(task_count / total_tasks * cap))
-        analysts[content_type] = raw
-
-    # Trim to cap
-    while sum(analysts.values()) > cap:
-        # Reduce the type with the most analysts
-        max_type = max(analysts, key=analysts.get)
-        analysts[max_type] -= 1
+        analysts[content_type] = max(1, round(task_count / total_tasks * target_analysts))
 
     return analysts
 ```
@@ -304,11 +294,11 @@ def plan_analysts(tasks_by_type, cap=6):
 ### Example
 
 A directory with 5 Python files (12 tasks), 3 CSV files (6 tasks), 1 JSON config (1 task):
-- Total: 19 tasks
-- Code analysts: `max(1, round(12/19 * 6))` = 4
-- Data analysts: `max(1, round(6/19 * 6))` = 2
-- JSON analysts: `max(1, round(1/19 * 6))` = 1
-- Total: 7 → trim code to 3 → total: 6
+- Total: 19 tasks → target ~5 analysts (19 ÷ 4)
+- Code analysts: `max(1, round(12/19 * 5))` = 3
+- Data analysts: `max(1, round(6/19 * 5))` = 2
+- JSON analysts: `max(1, round(1/19 * 5))` = 1
+- Total: 6 analysts
 
 ### Analyst Naming
 
@@ -463,7 +453,7 @@ In single-file RLM, analysts send full JSON findings to the Team Lead via `SendM
 
 1. **`/compact` between phases**: Run `/compact` after all analysts complete and before spawning synthesizers. This clears analyst notification messages from context.
 
-2. **Max 6 analysts**: Hard cap prevents spawning too many teammates. With 30 tasks and 6 analysts, each analyst processes ~5 tasks.
+2. **Scale analysts to workload**: Target 1 analyst per 3-5 tasks. More analysts = faster throughput but more context pressure from notifications; fewer = slower but lighter on context.
 
 3. **Descriptive task IDs in synthesis prompts**: The synthesizer prompt lists exactly which task IDs to read, rather than asking it to "find all completed tasks."
 
@@ -673,7 +663,7 @@ Total analyst tasks: 29 (partitioned) + 3 (batched) = **32** (slight overshoot; 
 | Phase 2 | Cross-type synthesis | 4 Phase 1 summaries |
 
 **Total tasks: 30 analyst + 4 Phase 1 synthesis + 1 Phase 2 synthesis = 35**
-**Total agents: 6 analysts + 1 synthesizer (reused) = 7**
+**Total agents: 8 analysts (30 tasks ÷ ~4 tasks/analyst) + 1 synthesizer (reused) = 9**
 
 The synthesizer is spawned once for Phase 1 (claiming Phase 1 tasks from TaskList) and once for Phase 2 (after Phase 1 completes). Alternatively, one synthesizer handles all phases sequentially.
 

@@ -394,10 +394,10 @@ One addition: update the synthesizer prompt to mention it may receive findings f
    | Role | Count | Agent Type | Purpose |
    |------|-------|-----------|---------|
    | Team Lead | 1 | You | Detect type, partition, spawn, synthesize |
-   | Code Analyst | 1-10 | swarm:rlm-code-analyzer | Source code chunks |
-   | Data Analyst | 1-10 | swarm:rlm-data-analyzer | CSV/TSV data chunks |
-   | JSON Analyst | 1-10 | swarm:rlm-json-analyzer | JSON/JSONL chunks |
-   | General Analyst | 1-10 | swarm:rlm-chunk-analyzer | Logs, prose, other |
+   | Code Analyst | ceil(partitions/4) | swarm:rlm-code-analyzer | Source code chunks |
+   | Data Analyst | ceil(partitions/4) | swarm:rlm-data-analyzer | CSV/TSV data chunks |
+   | JSON Analyst | ceil(partitions/4) | swarm:rlm-json-analyzer | JSON/JSONL chunks |
+   | General Analyst | ceil(partitions/4) | swarm:rlm-chunk-analyzer | Logs, prose, other |
    | Synthesizer | 0-1 | swarm:rlm-synthesizer | Combine all reports |
    ```
 

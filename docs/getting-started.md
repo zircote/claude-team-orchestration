@@ -67,7 +67,26 @@ Look for skills under the `swarm:` namespace. You should see entries like `swarm
 
 ---
 
-## 4. Choose a display mode
+## 4. Configure CLAUDE.md (recommended)
+
+Add the following to your project's `CLAUDE.md` (or `~/.claude-personal/CLAUDE.md` for all projects) to tell Claude to prefer parallel agent teams when work can be parallelized:
+
+```markdown
+## Always use swarm orchestration patterns (TeamCreate, Task with team_name, SendMessage, TaskCreate/TaskUpdate) when work is best executed by parallel specialist agents.
+This means:
+  - Spawning teams with specialized teammates for parallelizable work
+  - Using the task list for coordination and progress tracking
+  - Leveraging SendMessage for inter-agent communication
+  - Preferring concurrent execution over sequential when tasks are independent
+```
+
+Without this, Claude may run tasks sequentially or use simple subagents rather than coordinated teams. This instruction ensures Claude proactively spawns teams when appropriate.
+
+> **Tip:** If you only want swarm behavior in specific projects, put it in the project-level `CLAUDE.md`. For global behavior across all projects, put it in `~/.claude-personal/CLAUDE.md`.
+
+---
+
+## 5. Choose a display mode
 
 | Mode | What you see | Setup required |
 |------|-------------|----------------|
@@ -95,7 +114,7 @@ The default `"auto"` uses split panes if you're already inside a tmux session, a
 
 ---
 
-## 5. Run your first team
+## 6. Run your first team
 
 Start Claude Code (inside tmux for split panes):
 
@@ -134,7 +153,7 @@ Have each send findings to team-lead, then synthesize a summary.
 
 ---
 
-## 6. Next steps
+## 7. Next steps
 
 - Read [Patterns](patterns.md) to learn the seven orchestration patterns
 - Read [Agent Types](agent-types.md) to pick the right agent for each role

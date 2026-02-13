@@ -206,6 +206,23 @@ tmux kill-session -t claude-swarm   # Kill the orphaned session
 
 ## Performance Issues
 
+### Claude doesn't use teams automatically
+
+**Symptom:** Claude runs tasks sequentially or uses simple subagents instead of spawning coordinated teams.
+
+**Fix:** Add the swarm orchestration instruction to your `CLAUDE.md`:
+
+```markdown
+## Always use swarm orchestration patterns (TeamCreate, Task with team_name, SendMessage, TaskCreate/TaskUpdate) when work is best executed by parallel specialist agents.
+This means:
+  - Spawning teams with specialized teammates for parallelizable work
+  - Using the task list for coordination and progress tracking
+  - Leveraging SendMessage for inter-agent communication
+  - Preferring concurrent execution over sequential when tasks are independent
+```
+
+Place this in your project-level `CLAUDE.md` or `~/.claude-personal/CLAUDE.md`. This tells Claude to prefer parallel teams when work is parallelizable.
+
 ### Lead starts implementing instead of delegating
 
 **Symptom:** The lead does work itself instead of waiting for teammates.

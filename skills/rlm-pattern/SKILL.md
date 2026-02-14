@@ -86,7 +86,7 @@ Read the first 50 lines and apply heuristics (first match wins):
 | Content Type | Partition By | Chunk Size | Analyst Agent |
 |-------------|-------------|------------|---------------|
 | Source code | Function/class boundaries | 150-300 lines | `swarm:rlm-code-analyzer` |
-| CSV/TSV | Row count | 500-5000 rows | `swarm:rlm-data-analyzer` |
+| CSV/TSV | Row count | ~2000 rows (narrow) / ~500 rows (wide) | `swarm:rlm-data-analyzer` |
 | JSON | Top-level array elements | 200-500 elements | `swarm:rlm-json-analyzer` |
 | JSONL | Line count | 500-1000 lines | `swarm:rlm-json-analyzer` |
 | Log files | Line ranges + overlap | 200-5000 lines, 20-50 overlap | `swarm:rlm-chunk-analyzer` |
@@ -130,7 +130,7 @@ Read the first 50 lines and apply heuristics (first match wins):
 ### Log Files
 
 - **Chunk boundary**: Line ranges (sequential).
-- **Chunk size**: 200-5000 lines (adjust to target 5-10 partitions).
+- **Chunk size**: 200-5000 lines. Partition count scales with file size.
 - **Overlap**: 20-50 lines. Prevents splitting multi-line stack traces.
 - **Chunk index**: Each analyst receives "chunk M of N" for temporal ordering.
 - **Partition method**: Read offset/limit — no file writes needed, analysts read in-place.
@@ -199,8 +199,8 @@ Analysis focus: security
 **Multi-file mode:** Different analyst types run simultaneously when a directory contains mixed content types (e.g., Python + CSV + JSON). See [Multi-File Directory Analysis](#multi-file-directory-analysis).
 
 **Sizing guidance:**
-- Spawn 1 analyst per 3-5 partitions — each analyst claims multiple tasks from the shared TaskList
-- Scale analyst count proportionally: `analyst_count = ceil(partition_count / 4)`
+- Spawn 1 analyst per 3-5 tasks — each analyst claims multiple tasks from the shared TaskList
+- Scale analyst count proportionally: `analyst_count = ceil(task_count / 4)`
 - More analysts = faster throughput but more context pressure from notification messages; fewer = slower but lighter on context
 - Beyond ~15 analysts, the cost and notification volume outweigh the parallelism benefit — consider whether the task can be decomposed differently
 
@@ -243,10 +243,10 @@ Workflow:
 Query: What errors occurred and are there any patterns?
 Always send findings via SendMessage to "team-lead" — do NOT just return them.`
 
-// Calculate analyst count: ceil(partition_count / 4)
-// Example: 8 partitions → 2 analysts, 40 partitions → 10 analysts
+// Calculate analyst count: ceil(task_count / 4)
+// Example: 8 tasks → 2 analysts, 40 tasks → 10 analysts
 // NOTE: Do NOT set model parameter — agent definition defaults to Haiku, which is correct for chunk analysis
-const analystCount = Math.ceil(partitionCount / 4)
+const analystCount = Math.ceil(taskCount / 4)
 for (let i = 1; i <= analystCount; i++) {
   Task({ team_name: "rlm-analysis", name: `analyst-${i}`, subagent_type: "swarm:rlm-chunk-analyzer", prompt: analystPrompt, run_in_background: true })
 }
@@ -327,7 +327,7 @@ The consolidated report should include:
 The RLM pattern creates many agents that report back. To prevent context exhaustion:
 
 1. **Use team orchestration** — spawn analysts as teammates (with `team_name` + `name`) so results arrive via inbox messages, not as full task output dumps in the leader's context
-2. **Fewer analysts than partitions** — target 1 analyst per 3-5 partitions, each claiming multiple tasks from the shared TaskList
+2. **Fewer analysts than tasks** — target 1 analyst per 3-5 tasks, each claiming multiple tasks from the shared TaskList
 3. **Size partitions for analyst quality** — chunk size should stay within the content-type targets (see Partitioning Strategies). Let partition count scale with data size rather than forcing oversized chunks to hit a count target
 4. **Analyst reports must be compact** — structured summaries, not raw data
 5. **Pass by reference** — give analysts file paths and line ranges, never paste content into prompts
@@ -382,6 +382,24 @@ Files are tiered by size:
 | Large | > 5000 | Use content-type chunk size targets — scales with file size |
 
 Partition count is data-driven: divide each file's size by its content-type chunk target (e.g., 200-line chunks for code, 2000-row chunks for CSV). If the total partition count across all files becomes very large (50+), consider whether all files need full analysis or if some can be batched or excluded. The practical ceiling is the synthesizer's ability to consume findings, not an arbitrary cap.
+
+### Per-File Chunking
+
+Each file in multi-file mode is partitioned using the same content-type strategy as single-file RLM (see [Partitioning Strategies](#partitioning-strategies) above). Multi-file mode does not introduce new chunking logic. A 50,000-row CSV in a directory gets the same header-preserving, row-count-based chunking as it would in single-file mode.
+
+### Chunking Guardrails
+
+**These rules are mandatory. Violating them defeats the purpose of the RLM pattern.**
+
+1. **No file over 1500 lines/rows goes to a single analyst unchunked.** Every file exceeding 1500 lines MUST be partitioned according to its content-type chunk size target. Assigning a 10,000-row CSV to a single analyst is a pattern violation.
+
+2. **Partition count is computed, never guessed.** Use the formula: `partition_count = ceil(file_size / chunk_size_target)` where chunk_size_target comes from the Partitioning Strategies table (e.g., 2000 rows for narrow CSV, 500 for wide CSV).
+
+3. **Each chunk must fit in an analyst's effective context.** If a chunk would exceed ~2000 lines or ~4MB, reduce the chunk_size_target until chunks are manageable. The RLM pattern exists precisely because files are too large for single-agent processing — never bypass this by sending oversized chunks.
+
+4. **Multi-file directories chunk EACH file independently.** Processing a directory of 10 CSV files means partitioning each file per its content-type target, not assigning one analyst per file. A directory of 10 x 10,000-row CSVs should produce ~50 partition tasks (10 files x 5 chunks each at 2000 rows/chunk), not 10 tasks.
+
+5. **Byte-size check for structured data.** For CSV/TSV files, if the file exceeds 10MB, halve the chunk_size_target. A 100MB CSV with 10,000 rows has ~10KB per row — standard 2000-row chunks would be 20MB each, far too large. Use 500-row chunks instead.
 
 ### Small File Batching
 

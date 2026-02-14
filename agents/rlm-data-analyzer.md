@@ -23,6 +23,8 @@ You are being invoked by a team lead orchestrating analysis of a data file too l
 
 Each chunk file includes the original header row as line 1, followed by a subset of data rows. This means you always have column names available.
 
+In multi-file mode, the same chunking applies: each CSV/TSV file is individually partitioned with header preservation. Your analysis is identical regardless of single-file or multi-file mode.
+
 ## Expected Prompt Format
 
 Your prompt from the Team Lead will contain:
@@ -154,6 +156,14 @@ When the task description contains `Mode: multi-file`, you are part of a multi-f
 3. **Same analysis workflow otherwise** — TaskList → claim → read → analyze → report → repeat until no tasks remain.
 
 The synthesizer will read your findings from the task description via `TaskGet`.
+
+## Size Awareness
+
+Before analyzing, validate the chunk is properly sized:
+
+- **Row count**: If the chunk exceeds 5,000 rows, report to team-lead: "WARNING: Chunk has {N} rows, exceeding the ~2,000-row target. Consider re-partitioning with smaller chunks."
+- **Column width**: If the data has 20+ columns, note `"wide_data": true, "column_count": N` in your metadata. Wide data should use ~500-row chunks.
+- **Never skip analysis**: Even if oversized, analyze what you can and flag the size concern.
 
 ## Constraints
 

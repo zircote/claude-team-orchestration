@@ -48,10 +48,10 @@ This design extends the RLM pattern to accept a directory path, enumerate and cl
 | Input | One file path | Directory path + glob filters |
 | Content detection | One type per session | Per-file detection, multiple types |
 | Analyst types | One type per session | Mixed types (up to 4 different) |
-| Partitioning | One strategy | Per-type strategy for each file |
+| Partitioning | One strategy | Per-file recursive: same content-type strategy applied to each file |
 | Synthesis | Single phase (merge all) | Two phases: per-type then cross-type |
 | Context management | Findings via SendMessage | Findings in task descriptions via TaskUpdate |
-| Analyst cap | No explicit cap | Scales to task volume (1 per 3-5 tasks) |
+| Analyst scaling | No explicit cap | Scales to task volume (1 per 3-5 tasks) |
 
 ---
 
@@ -147,52 +147,50 @@ Files are classified into size tiers, and each tier gets a different partition c
 | Tier | Line Count | Partitions | Rationale |
 |------|-----------|------------|-----------|
 | Small | ≤ 1500 lines | 0 (batched — see Section 5) | Fits in analyst context whole |
-| Medium | 1501–5000 lines | 3–5 | Needs splitting but not many chunks |
-| Large | > 5000 lines | 5–10 | Needs aggressive splitting |
+| Medium | 1501–5000 lines | Use content-type chunk size targets (typically 3–5) | Needs splitting but not many chunks |
+| Large | > 5000 lines | Use content-type chunk size targets — scales with file size | Needs aggressive splitting |
 
-### Global Cap
+### Scaling Guidance
 
-**Total partitions across all files: 30 maximum.**
-
-If the sum of per-file partitions exceeds 30, scale down proportionally:
-
-```
-1. For each file, compute raw_partitions using tier rules
-2. Sum all raw_partitions → total_raw
-3. If total_raw ≤ 30: use raw_partitions as-is
-4. If total_raw > 30:
-   a. scale_factor = 30 / total_raw
-   b. For each file: scaled = max(2, floor(raw_partitions * scale_factor))
-   c. If sum(scaled) > 30: trim the smallest files first (reduce to minimum 2)
-5. Every file with partitions > 0 gets at least 2 partitions (minimum for meaningful splitting)
-```
-
-### Sizing Guidance
+Partition count is data-driven: divide each file's size by its content-type chunk target (e.g., 200-line chunks for code, 2000-row chunks for narrow CSV). There is no hard cap on total partitions. If the total partition count across all files becomes very large (50+), consider whether all files need full analysis or if some can be batched or excluded. The practical ceiling is the synthesizer's ability to consume findings, not an arbitrary cap.
 
 | Directory Profile | Example | Expected Partitions |
 |-------------------|---------|-------------------|
 | Small (3-5 files, all small) | Config directory | 3-5 tasks (one per file, no splitting) |
 | Medium (5-10 files, mixed sizes) | Feature module | 10-20 tasks |
-| Large (10-20 files, several large) | Full service | 25-30 tasks (cap applies) |
+| Large (10-20 files, several large) | Full service | 25-50 tasks (scales with data) |
+
+### Per-File Chunking
+
+Each file in the directory is individually partitioned using the same content-type strategy defined in the single-file RLM specification (`skills/rlm-pattern/SKILL.md` Partitioning Strategies section). Multi-file mode does not introduce new chunking logic. The partition count for each file is simply its size divided by the content-type chunk target.
 
 ### Pseudocode
 
 ```python
 def allocate_budget(files):
+    # Content-type chunk size targets (from Partitioning Strategies)
+    chunk_targets = {
+        "source_code": 200,       # lines (150-300 range)
+        "structured_data": 2000,  # rows for narrow data, 500 for wide
+        "json": 350,              # elements (200-500 range)
+        "jsonl": 750,             # lines (500-1000 range)
+        "log": 2500,              # lines (200-5000 range)
+        "prose": 250,             # lines
+        "config": 200,            # lines
+    }
+
     manifest = []
     for f in files:
         lines = count_lines(f)
         content_type = detect_type(f)
         if lines <= 1500:
             manifest.append({"file": f, "lines": lines, "type": content_type, "partitions": 0, "tier": "small"})
-        elif lines <= 5000:
-            # Scale within 3-5 range based on line count
-            partitions = 3 + round((lines - 1501) / (5000 - 1501) * 2)
-            manifest.append({"file": f, "lines": lines, "type": content_type, "partitions": partitions, "tier": "medium"})
         else:
-            # Scale within 5-10 range based on line count
-            partitions = min(10, 5 + round((lines - 5001) / 10000 * 5))
-            manifest.append({"file": f, "lines": lines, "type": content_type, "partitions": partitions, "tier": "large"})
+            # Data-driven: divide file size by content-type chunk target
+            chunk_size = chunk_targets.get(content_type, 200)
+            partitions = max(2, ceil(lines / chunk_size))
+            tier = "medium" if lines <= 5000 else "large"
+            manifest.append({"file": f, "lines": lines, "type": content_type, "partitions": partitions, "tier": tier})
 
     # No hard cap — partition count is data-driven.
     # If total is very large (50+), consider excluding low-priority files
@@ -513,7 +511,7 @@ Add support for **TaskGet-based retrieval**. The synthesizer already receives fi
 - Synthesizer calls `TaskGet` for each ID to retrieve findings
 - Two prompt variants: per-type synthesis and cross-type synthesis
 
-The synthesizer needs `TaskGet` in its tools list (currently has only `Read` and `SendMessage`). Add `TaskGet` and `TaskUpdate` to its tool list.
+The synthesizer's tool list already includes `TaskGet` and `TaskUpdate` (alongside `Read` and `SendMessage`).
 
 ---
 
@@ -540,20 +538,24 @@ The synthesizer needs `TaskGet` in its tools list (currently has only `Read` and
 **Step 1 — Enumerate & Detect:**
 Team Lead uses Glob to list files, applies default exclusions, detects content types via extension mapping.
 
-**Step 2 — Partition Budget:**
+**Step 2 — Partition Budget (data-driven, per content-type chunk targets):**
 
-| File | Tier | Raw Partitions |
-|------|------|---------------|
-| `data_pipeline.py` | Medium | 4 |
-| `api_server.py` | Medium | 3 |
-| `models.py` | Medium | 4 |
-| `utils.py` | Small | 0 (batched) |
-| `config.json` | Small | 0 (batched) |
-| `schema.json` | Small | 0 (batched) |
-| `README.md` | Small | 0 (batched) |
-| `requirements.txt` | Small | 0 (batched) |
-| `Makefile` | Small | 0 (batched) |
-| **Total partitioned** | | **11** |
+Each source code file uses the ~200-line chunk target. JSON files are small (batched).
+
+| File | Tier | Chunk Target | Partitions |
+|------|------|-------------|------------|
+| `data_pipeline.py` | Medium | ~200 lines (code) | 14 (2800 / 200) |
+| `api_server.py` | Medium | ~200 lines (code) | 10 (1900 / 200) |
+| `models.py` | Medium | ~200 lines (code) | 16 (3200 / 200) |
+| `utils.py` | Small | — | 0 (batched) |
+| `config.json` | Small | — | 0 (batched) |
+| `schema.json` | Small | — | 0 (batched) |
+| `README.md` | Small | — | 0 (batched) |
+| `requirements.txt` | Small | — | 0 (batched) |
+| `Makefile` | Small | — | 0 (batched) |
+| **Total partitioned** | | | **40** |
+
+Note: The code chunker uses function/class boundaries (150-300 lines), so actual partition count may differ based on code structure. The numbers above are approximate.
 
 **Step 3 — Small File Batching:**
 
@@ -564,29 +566,29 @@ Team Lead uses Glob to list files, applies default exclusions, detects content t
 | Batch C | config | `requirements.txt`, `Makefile` | 170 |
 | Batch D | prose | `README.md` | 300 (lone file) |
 
-**Total analyst tasks: 11 (partitioned) + 4 (batched) = 15**
+**Total analyst tasks: 40 (partitioned) + 4 (batched) = 44**
 
-However — with `README.md` (prose) and `requirements.txt`/`Makefile` (config) being trivial, the Team Lead can exclude them or batch them together as general-type. Adjusted: **13 analyst tasks**.
+The Team Lead may reduce this by using larger chunk targets (e.g., 300-line code chunks) or excluding trivial files.
 
 **Step 4 — Analyst Mix:**
 
 | Content Type | Tasks | Analysts |
 |-------------|-------|----------|
-| source_code | 12 | 4 |
+| source_code | 41 | 10 |
 | json | 1 | 1 |
-| general | 0 | 0 |
-| **Total** | **13** | **5** |
+| general | 2 | 1 |
+| **Total** | **44** | **12** |
 
 **Step 5 — Synthesis:**
 
 | Phase | Task | Reads From | Produces |
 |-------|------|-----------|----------|
-| Phase 1 | Synthesize code findings | 12 code analyst tasks | Code summary |
+| Phase 1 | Synthesize code findings | 41 code analyst tasks | Code summary |
 | Phase 1 | Synthesize JSON findings | 1 JSON analyst task | JSON summary |
 | Phase 2 | Cross-type synthesis | 2 Phase 1 summaries | Final report |
 
-**Total tasks: 13 analyst + 2 Phase 1 synthesis + 1 Phase 2 synthesis = 16**
-**Total agents: 5 analysts + 1 synthesizer (reused across phases) = 6**
+**Total tasks: 44 analyst + 2 Phase 1 synthesis + 1 Phase 2 synthesis = 47**
+**Total agents: 12 analysts + 1 synthesizer (reused across phases) = 13**
 
 ---
 
@@ -607,30 +609,34 @@ However — with `README.md` (prose) and `requirements.txt`/`Makefile` (config) 
 
 **Query:** "Analyze data quality, identify transformation issues, and check for pipeline errors."
 
-**Step 1 — Partition Budget:**
+**Step 1 — Partition Budget (data-driven, per content-type chunk targets):**
 
-| File | Tier | Raw Partitions |
-|------|------|---------------|
-| `transactions.csv` | Large | 10 |
-| `customers.csv` | Large | 8 |
-| `events.jsonl` | Large | 6 |
-| `etl.log` | Large | 5 |
-| `etl_transform.py` | Medium | 4 |
-| `etl_load.sh` | Small | 0 (batched) |
-| `pipeline_config.json` | Small | 0 (batched) |
-| `README.md` | Small | 0 (batched) |
-| **Total raw** | | **33** |
+Each file is partitioned using its content-type chunk size target. CSV files use the structured_data strategy: ~2000 rows per chunk for narrow data, ~500 for wide. Each CSV chunk preserves the header row.
 
-**Global cap applied** (33 > 30): scale factor = 30/33 = 0.91
+| File | Tier | Chunk Target | Partitions |
+|------|------|-------------|------------|
+| `transactions.csv` | Large | ~2000 rows (narrow CSV) | 41 (82000 / 2000) |
+| `customers.csv` | Large | ~2000 rows (narrow CSV) | 23 (45000 / 2000) |
+| `events.jsonl` | Large | ~750 lines (JSONL) | 34 (25000 / 750) |
+| `etl.log` | Large | ~2500 lines (log) | 6 (15000 / 2500) |
+| `etl_transform.py` | Medium | ~200 lines (code) | 21 (4200 / 200) |
+| `etl_load.sh` | Small | — | 0 (batched) |
+| `pipeline_config.json` | Small | — | 0 (batched) |
+| `README.md` | Small | — | 0 (batched) |
+| **Total** | | | **125** |
 
-| File | Scaled Partitions |
-|------|------------------|
-| `transactions.csv` | 9 |
-| `customers.csv` | 7 |
-| `events.jsonl` | 5 |
-| `etl.log` | 4 |
-| `etl_transform.py` | 4 |
-| **Total scaled** | **29** |
+This is a large workload (125 partitions). The Team Lead should consider whether all files need full analysis — for example, the README and config might be excluded, and the ETL log might use larger chunks (5000 lines instead of 2500) to reduce task count. After adjustment:
+
+| File | Adjusted Partitions |
+|------|-------------------|
+| `transactions.csv` | 41 |
+| `customers.csv` | 23 |
+| `events.jsonl` | 34 |
+| `etl.log` | 3 (5000-line chunks) |
+| `etl_transform.py` | 21 |
+| **Total adjusted** | **122** |
+
+Even adjusted, this is a large workload. The Team Lead could further reduce by using wider chunk targets for CSV (e.g., ~5000 rows) or excluding lower-priority files.
 
 **Step 2 — Small File Batching:**
 
@@ -640,30 +646,33 @@ However — with `README.md` (prose) and `requirements.txt`/`Makefile` (config) 
 | Batch B | json | `pipeline_config.json` | 350 |
 | Batch C | prose | `README.md` | 200 |
 
-Total analyst tasks: 29 (partitioned) + 3 (batched) = **32** (slight overshoot; Team Lead can drop the README batch or merge Batch B and C into a general batch → **30 analyst tasks**).
+Total analyst tasks: 122 (partitioned) + 3 (batched) = **125**
 
 **Step 3 — Analyst Mix:**
 
 | Content Type | Tasks | Analysts |
 |-------------|-------|----------|
-| structured_data | 16 | 3 |
-| jsonl | 5 | 1 |
-| source_code | 5 | 1 |
-| general (log) | 4 | 1 |
-| **Total** | **30** | **6** |
+| structured_data | 64 | 16 |
+| jsonl | 34 | 9 |
+| source_code | 22 | 6 |
+| general (log) | 3 | 1 |
+| general (prose/json) | 2 | 1 |
+| **Total** | **125** | **33** |
+
+Note: With 33 analysts, the notification volume becomes significant. The Team Lead should weigh cost against throughput and may choose fewer analysts with higher task-per-analyst ratios.
 
 **Step 4 — Synthesis:**
 
 | Phase | Task | Reads From |
 |-------|------|-----------|
-| Phase 1 | Synthesize CSV findings | 16 data analyst tasks |
-| Phase 1 | Synthesize JSONL findings | 5 JSON analyst tasks |
-| Phase 1 | Synthesize code findings | 5 code analyst tasks |
-| Phase 1 | Synthesize log findings | 4 general analyst tasks |
+| Phase 1 | Synthesize CSV findings | 64 data analyst tasks |
+| Phase 1 | Synthesize JSONL findings | 34 JSON analyst tasks |
+| Phase 1 | Synthesize code findings | 22 code analyst tasks |
+| Phase 1 | Synthesize log findings | 3 general analyst tasks |
 | Phase 2 | Cross-type synthesis | 4 Phase 1 summaries |
 
-**Total tasks: 30 analyst + 4 Phase 1 synthesis + 1 Phase 2 synthesis = 35**
-**Total agents: 8 analysts (30 tasks ÷ ~4 tasks/analyst) + 1 synthesizer (reused) = 9**
+**Total tasks: 125 analyst + 4 Phase 1 synthesis + 1 Phase 2 synthesis = 130**
+**Total agents: 33 analysts + 1 synthesizer (reused across phases) = 34**
 
 The synthesizer is spawned once for Phase 1 (claiming Phase 1 tasks from TaskList) and once for Phase 2 (after Phase 1 completes). Alternatively, one synthesizer handles all phases sequentially.
 
@@ -676,8 +685,8 @@ The synthesizer is spawned once for Phase 1 (claiming Phase 1 tasks from TaskLis
 **Chosen over:** Hierarchical model (Type Coordinators per content type) and pure-flat model (all findings to Team Lead).
 
 **Why hierarchical was eliminated:**
-- Platform constraint: "No nested teams: Teammates cannot spawn their own teams or teammates" (`skills/error-handling/SKILL.md:112`)
-- Platform constraint: "One team per session" (`skills/error-handling/SKILL.md:110`)
+- Platform constraint: "No nested teams: Teammates cannot spawn their own teams or teammates" (see `skills/error-handling/SKILL.md`)
+- Platform constraint: "One team per session" (see `skills/error-handling/SKILL.md`)
 - Type Coordinators would need to be mid-level orchestrators with their own sub-teams — not possible
 
 **Why pure-flat was rejected:**
@@ -687,19 +696,20 @@ The synthesizer is spawned once for Phase 1 (claiming Phase 1 tasks from TaskLis
 
 **Hybrid approach:** Team Lead handles all orchestration (flat). Synthesis uses task dependencies for two phases (per-type then cross-type), giving depth without hierarchy.
 
-### D2: Tiered Partition Budget with Global Cap
+### D2: Data-Driven Partition Budget (Tiered, No Hard Cap)
 
-**Chosen over:** Uniform partition count per file and unlimited partitions.
+**Chosen over:** Uniform partition count per file and hard-capped partitions.
 
 **Why uniform was rejected:**
 - A 50-line config file doesn't need 5 partitions
 - A 80,000-line CSV needs more than 5 partitions
 - Tier-based allocation matches resource to need
 
-**Why unlimited was rejected:**
-- 20 files × 10 partitions = 200 tasks → overwhelms task system and synthesis
-- Global cap of 30 keeps the session manageable
-- Proportional scaling preserves relative allocation when cap is hit
+**Why hard caps were rejected:**
+- An arbitrary cap (e.g., 30) forces partition sizes to inflate beyond content-type targets, degrading analyst quality
+- Data-driven sizing (file size / chunk target) naturally produces the right partition count for each file
+- When total partitions are very large (50+), the Team Lead should consider excluding low-priority files or using larger chunk targets — not artificially shrinking partitions via a global cap
+- The practical ceiling is the synthesizer's ability to consume findings, which varies by task
 
 ### D3: Batch Small Files Instead of Inline Analysis
 

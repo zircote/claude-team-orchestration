@@ -116,7 +116,7 @@ time statistics.
 **What Claude does:**
 1. Detects `structured_data` from `.csv` extension
 2. Reads the header row and preserves it in every chunk
-3. Splits by row count (500-5000 rows per chunk, targeting 5-10 partitions)
+3. Splits by row count (~2000 rows per chunk for narrow data, ~500 for wide data with 20+ columns)
 4. Spawns `swarm:rlm-data-analyzer` agents — column-aware, reports distributions and statistics
 5. Findings are aggregatable: the synthesizer sums counts across chunks
 
@@ -183,10 +183,27 @@ Report data quality issues, distributions, and cross-file inconsistencies.
 2. Detects the same content type across all files
 3. Applies the tiered partition budget:
    - Small files (<=1500 lines): batched together, no splitting
-   - Medium files (1501-5000 lines): 3-5 partitions each
-   - Large files (>5000 lines): 5-10 partitions each
-4. Spawns one analyst type, scaling analyst count to partition volume (1 per 3-5 partitions)
+   - Medium files (1501-5000 lines): partitioned by content-type chunk targets (typically 3-5 partitions)
+   - Large files (>5000 lines): partitioned by content-type chunk targets — scales with file size
+4. Spawns one analyst type, scaling analyst count to task volume (1 per 3-5 tasks)
 5. Synthesizes findings across all files
+
+### Example: Large CSV Data Directory
+
+```
+Analyze all CSV files in data/monthly-exports/ using the RLM pattern.
+Each file has 10,000+ rows. Report data quality issues, distribution
+summaries, and cross-file trends.
+```
+
+**What Claude does:**
+1. Enumerates CSV files, detects `structured_data` type for each
+2. Partitions each file by row count: e.g., a 10,000-row narrow CSV gets 5 chunks at ~2,000 rows each
+3. Creates chunk files with the header row preserved in every chunk
+4. Spawns `swarm:rlm-data-analyzer` analysts scaled to total task count
+5. Each analyst processes multiple chunks, reporting distributions and statistics
+6. Two-phase synthesis produces per-file summaries then cross-file trends
+7. Every file over 1,500 rows is partitioned -- no analyst receives an entire large file
 
 ---
 
@@ -222,18 +239,17 @@ and error handling.
 
 **What Claude does:**
 1. Enumerates and classifies every file by content type (extension + content sniffing)
-2. Groups files by type and applies per-type partitioning strategies
-3. Allocates a data-driven partition budget with tiered sizing
-4. Batches small same-type files together to reduce task count
-5. Spawns mixed analyst types simultaneously (up to 4 different types, scaled to task volume):
+2. Groups files by type and partitions each file using its content-type strategy (e.g., CSV gets header-preserving row splits, code gets function-boundary splits)
+3. Allocates partitions by tier: small files batched by type, medium/large files partitioned by chunk targets
+4. Spawns mixed analyst types simultaneously (up to 4 different types, scaled to task volume):
    - `swarm:rlm-code-analyzer` for source files
    - `swarm:rlm-data-analyzer` for CSV/TSV files
    - `swarm:rlm-json-analyzer` for JSON/JSONL files
    - `swarm:rlm-chunk-analyzer` for logs, docs, configs
-6. Analysts write findings to task descriptions (not messages) to protect team lead context
-7. **Phase 1 synthesis**: per-type summaries in parallel (e.g., "all Python findings", "all CSV findings")
-8. **Phase 2 synthesis**: cross-type final report correlating findings across file types
-9. Final report includes: Per-File Findings, Cross-File Analysis, and Recommendations
+5. Analysts write findings to task descriptions (not messages) to protect team lead context
+6. **Phase 1 synthesis**: per-type summaries in parallel (e.g., "all Python findings", "all CSV findings")
+7. **Phase 2 synthesis**: cross-type final report correlating findings across file types
+8. Final report includes: Per-File Findings, Cross-File Analysis, and Recommendations
 
 ### What Cross-File Analysis Catches
 
@@ -264,9 +280,11 @@ The more specific your analysis request, the more targeted the findings:
 | File Size | Recommendation |
 |-----------|---------------|
 | < 1500 lines | No RLM needed — Claude handles it directly |
-| 1500-5000 lines | RLM useful — 3-5 partitions |
-| 5000-50000 lines | RLM recommended — 5-10 partitions |
-| 50000+ lines | RLM essential — adjust chunk sizes for ~10 partitions |
+| 1500-5000 lines | RLM useful — typically 3-5 partitions |
+| 5000-50000 lines | RLM recommended — partitions scale with file size |
+| 50000+ lines | RLM essential — consider larger chunk targets to manage partition count |
+
+Chunk targets vary by content type: ~2,000 rows for narrow CSV, ~500 for wide CSV, ~200 lines for code. See the [RLM Pattern Skill](../skills/rlm-pattern/SKILL.md) for all content-type targets.
 
 ### Directory Size Guidelines
 
@@ -274,7 +292,7 @@ The more specific your analysis request, the more targeted the findings:
 |-------------------|---------------|
 | 1-3 small files | No RLM needed |
 | 3-10 mixed files | Multi-file RLM useful |
-| 10-20 files with large ones | Multi-file RLM recommended (cap applies) |
+| 10-20 files with large ones | Multi-file RLM recommended |
 | 20+ files | Filter with include/exclude globs to focus on key files |
 
 ### Mentioning Content Type Isn't Required

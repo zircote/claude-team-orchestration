@@ -290,7 +290,7 @@ Task({
 
 Divide large files into partitions, analyze each with a parallel agent team, then synthesize.
 
-**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content that exceeds context limits (~1500 lines).
+**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content that exceeds context limits (~2000 lines).
 
 **How it works:**
 1. Team lead detects content type and determines partitioning strategy
@@ -326,7 +326,6 @@ Task({ team_name: "rlm-analysis", name: "analyst-3", subagent_type: "swarm:rlm-c
 
 For directories with mixed content types, the RLM pattern extends to multi-file mode:
 - Per-file content-type detection and mixed analyst types in one team
-- **Per-file chunking** — each file uses the same content-type strategy as single-file RLM (e.g., CSV files get header-preserving row splits)
 - Tiered partition budget (small/medium/large files) with data-driven sizing
 - Small files of the same type batched into single analyst tasks
 - Two-phase synthesis: per-type (parallel) then cross-type (sequential)

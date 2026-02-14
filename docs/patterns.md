@@ -14,7 +14,7 @@ Seven proven patterns for structuring agent teams. Choose based on your task's c
 | [Research + Implementation](#research--implementation) | Learn then build | 2 | Phase gate |
 | [Plan Approval](#plan-approval) | High-risk changes | 1-2 | Approval gate |
 | [Multi-File Refactoring](#multi-file-refactoring) | Cross-file changes | 2-4 | Fan-in |
-| [RLM (Recursive Language Model)](#rlm-recursive-language-model) | Files exceeding context | 3-5 | Fan-out/fan-in |
+| [RLM (Recursive Language Model)](#rlm-recursive-language-model) | Files exceeding context | 1 per partition | Fan-out/fan-in |
 
 ---
 
@@ -181,7 +181,7 @@ Workers 1 and 2 can work in parallel. Worker 3 waits for both to finish.
 
 Divide large files into partitions, analyze each with parallel analyst agents, then synthesize. Supports content-aware chunking (code, CSV, JSON, logs, prose) and multi-file directory analysis.
 
-**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content > ~2000 lines. Also: directory analysis with mixed content types needing cross-file insights.
+**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content > ~1500 lines. Also: directory analysis with mixed content types needing cross-file insights.
 
 **Example prompt (single file):**
 ```

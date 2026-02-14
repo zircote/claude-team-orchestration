@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-13
+
+### Added
+
+- **Anti-pattern guardrail** ("Critical: What RLM is NOT"): New section in `skills/rlm-pattern/SKILL.md` that prevents thematic decomposition — explicitly warns against creating per-analysis-goal tasks instead of per-data-partition tasks
+- **Pre-processing for compressed inputs**: New section handles `.zip`, `.gz`, `.tar.gz` archives before content-type detection, with routing to single-file or multi-file mode based on archive contents
+- **Mandatory CSV partitioning procedure**: Concrete step-by-step bash commands (`wc -l` → divide → write chunk files) in the Structured Data section — eliminates ambiguity about how to partition CSVs
+- **Multi-file partitioning sanity check**: Warning in Multi-File Directory Analysis section with concrete validation: "if task count = file count, you haven't partitioned"
+- **Large CSV Directory walkthrough**: New abbreviated walkthrough showing 11 CSV files → 88 chunks → 88 analysts with staged spawning — mirrors real-world Jira export analysis scenario
+
+### Changed
+
+- **1:1 analyst-per-partition model**: Replaced `ceil(partition_count / 4)` formula with `analyst_count = partition_count` across all sizing guidance (3 locations in SKILL.md, design doc, and all referencing docs)
+- **Staged spawning**: Analysts spawn in batches of ~15 instead of all at once; pre-assigned chunks instead of shared task pool claiming
+- **Fresh context per analyst**: Each analyst gets a clean context window for one chunk — no cross-chunk contamination from reusing analyst contexts
+- **Wide CSV chunk range widened** to ~500-1500 rows: ~500 for dense wide data, ~1500 for sparse wide data (e.g., Jira exports with many empty columns)
+- **Removed ~15 analyst cap**: No hard ceiling on analyst count; Haiku analysts are lightweight
+- **Aggressive partitioning guidance**: Replaced "practical ceiling" language with "no ceiling when using findings-in-task-descriptions mode and staged spawning"
+- Updated Step 1 and Step 2 lifecycle code examples to show 1:1 pre-assigned model
+- Updated "Why Teams" table to show pre-assigned distribution model
+- Updated multi-file sections: analyst mix text, walkthrough analyst counts, context management
+- Synchronized all referencing documentation: `docs/patterns.md`, `docs/rlm-examples.md`, `skills/orchestration-patterns/SKILL.md`, `skills/agent-types/SKILL.md`, `docs/design/content-aware-rlm.md`, `docs/design/multi-file-rlm.md`, `skills/orchestration-patterns/examples/complete-workflows.md`
+
 ## [1.2.2] - 2026-02-13
 
 ### Changed
@@ -102,5 +125,6 @@ Based on the [Claude Code Swarm Orchestration Skill](https://gist.github.com/kie
 [1.0.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.0.0
 [1.1.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.1.0
 [1.2.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.0
-[1.2.2]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.2
 [1.2.1]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.1
+[1.2.2]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.2
+[1.3.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.3.0

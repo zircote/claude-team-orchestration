@@ -264,7 +264,7 @@ TeamDelete()
 - Analysts: `swarm:rlm-chunk-analyzer` (Haiku — fast and cheap for per-chunk analysis)
 - Synthesizer (optional): `swarm:rlm-synthesizer` (Sonnet — for complex cross-chunk synthesis)
 
-**Key:** Analysts are spawned as **teammates** (`team_name` + `name`), not plain subagents. They communicate via `SendMessage` and claim work from the shared `TaskList`. This prevents analyst output from flooding the team lead's context.
+**Key:** Analysts are spawned as **teammates** (`team_name` + `name`), not plain subagents — 1 analyst per partition with fresh context. Each analyst processes its pre-assigned chunk, writes findings to the task description via `TaskUpdate`, and sends a one-line summary via `SendMessage`. For large workloads, use staged spawning (batches of ~15).
 
 ---
 

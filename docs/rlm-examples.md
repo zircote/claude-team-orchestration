@@ -40,8 +40,8 @@ inconsistencies, and areas needing remediation. Use the RLM pattern.
 **What Claude does:**
 1. Detects content type (`log` or `prose`)
 2. Splits into ~5-10 chunks by line ranges (with overlap for logs)
-3. Spawns 3-5 `swarm:rlm-chunk-analyzer` agents (Haiku)
-4. Each analyst claims chunks from the shared task list
+3. Spawns 1 `swarm:rlm-chunk-analyzer` agent per chunk (Haiku), each with fresh context
+4. Each analyst processes its pre-assigned chunk (1 analyst per partition, staged spawning for large workloads)
 5. Synthesizes all findings into a consolidated report
 
 ---
@@ -116,7 +116,7 @@ time statistics.
 **What Claude does:**
 1. Detects `structured_data` from `.csv` extension
 2. Reads the header row and preserves it in every chunk
-3. Splits by row count (500-5000 rows per chunk, targeting 5-10 partitions)
+3. Splits by row count (~2000 rows per chunk for narrow data, ~500-1500 for wide data with 20+ columns)
 4. Spawns `swarm:rlm-data-analyzer` agents — column-aware, reports distributions and statistics
 5. Findings are aggregatable: the synthesizer sums counts across chunks
 
@@ -183,9 +183,9 @@ Report data quality issues, distributions, and cross-file inconsistencies.
 2. Detects the same content type across all files
 3. Applies the tiered partition budget:
    - Small files (<=1500 lines): batched together, no splitting
-   - Medium files (1501-5000 lines): 3-5 partitions each
-   - Large files (>5000 lines): 5-10 partitions each
-4. Spawns one analyst type, scaling analyst count to partition volume (1 per 3-5 partitions)
+   - Medium files (1501-5000 lines): partitioned using content-type chunk targets
+   - Large files (>5000 lines): partitioned using content-type chunk targets (scales with file size)
+4. Spawns one analyst per partition (1:1 ratio, fresh context each), staged in batches of ~15 for large workloads
 5. Synthesizes findings across all files
 
 ---
@@ -264,9 +264,9 @@ The more specific your analysis request, the more targeted the findings:
 | File Size | Recommendation |
 |-----------|---------------|
 | < 1500 lines | No RLM needed — Claude handles it directly |
-| 1500-5000 lines | RLM useful — 3-5 partitions |
-| 5000-50000 lines | RLM recommended — 5-10 partitions |
-| 50000+ lines | RLM essential — adjust chunk sizes for ~10 partitions |
+| 1500-5000 lines | RLM useful — partitions based on content-type chunk targets |
+| 5000-50000 lines | RLM recommended — partitions scale with file size |
+| 50000+ lines | RLM essential — partitions scale with file size |
 
 ### Directory Size Guidelines
 
@@ -274,7 +274,7 @@ The more specific your analysis request, the more targeted the findings:
 |-------------------|---------------|
 | 1-3 small files | No RLM needed |
 | 3-10 mixed files | Multi-file RLM useful |
-| 10-20 files with large ones | Multi-file RLM recommended (cap applies) |
+| 10-20 files with large ones | Multi-file RLM recommended |
 | 20+ files | Filter with include/exclude globs to focus on key files |
 
 ### Mentioning Content Type Isn't Required

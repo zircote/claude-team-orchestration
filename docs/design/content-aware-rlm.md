@@ -394,10 +394,10 @@ One addition: update the synthesizer prompt to mention it may receive findings f
    | Role | Count | Agent Type | Purpose |
    |------|-------|-----------|---------|
    | Team Lead | 1 | You | Detect type, partition, spawn, synthesize |
-   | Code Analyst | ceil(partitions/4) | swarm:rlm-code-analyzer | Source code chunks |
-   | Data Analyst | ceil(partitions/4) | swarm:rlm-data-analyzer | CSV/TSV data chunks |
-   | JSON Analyst | ceil(partitions/4) | swarm:rlm-json-analyzer | JSON/JSONL chunks |
-   | General Analyst | ceil(partitions/4) | swarm:rlm-chunk-analyzer | Logs, prose, other |
+   | Code Analyst | 1 per partition | swarm:rlm-code-analyzer | Source code chunks |
+   | Data Analyst | 1 per partition | swarm:rlm-data-analyzer | CSV/TSV data chunks |
+   | JSON Analyst | 1 per partition | swarm:rlm-json-analyzer | JSON/JSONL chunks |
+   | General Analyst | 1 per partition | swarm:rlm-chunk-analyzer | Logs, prose, other |
    | Synthesizer | 0-1 | swarm:rlm-synthesizer | Combine all reports |
    ```
 
@@ -489,16 +489,19 @@ for (const chunk of chunks) {
   })
 }
 
-// Spawn 3-5 analyst TEAMMATES (they claim tasks from the shared list)
-const prompt = `You are an RLM code analyst on team "rlm-code-review".
-1. Call TaskList to find pending tasks, claim with TaskUpdate
-2. Read the chunk file, analyze for security + code quality
-3. Mark task completed, send JSON findings to team-lead via SendMessage
-4. Repeat until no tasks remain`
-
-Task({ team_name: "rlm-code-review", name: "analyst-1", subagent_type: "swarm:rlm-code-analyzer", prompt, run_in_background: true })
-Task({ team_name: "rlm-code-review", name: "analyst-2", subagent_type: "swarm:rlm-code-analyzer", prompt, run_in_background: true })
-Task({ team_name: "rlm-code-review", name: "analyst-3", subagent_type: "swarm:rlm-code-analyzer", prompt, run_in_background: true })
+// Spawn 1 analyst per partition (fresh context each, staged in batches of ~15)
+for (let i = 0; i < chunks.length; i++) {
+  Task({
+    team_name: "rlm-code-review",
+    name: `analyst-${i + 1}`,
+    subagent_type: "swarm:rlm-code-analyzer",
+    prompt: `You are analyst-${i + 1}. Analyze chunk ${i + 1} of ${chunks.length}.
+Query: Review for security issues and code quality
+File: ${chunks[i].path}
+Write JSON findings to task description via TaskUpdate, send one-line summary to team-lead.`,
+    run_in_background: true
+  })
+}
 ```
 
 **Step 4 — Analyst Reports (example from chunk-01):**

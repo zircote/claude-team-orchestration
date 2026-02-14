@@ -290,13 +290,13 @@ Task({
 
 Divide large files into partitions, analyze each with a parallel agent team, then synthesize.
 
-**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content that exceeds context limits (~2000 lines).
+**When to use:** Large log analysis, data exports, full-codebase review, CSV processing — any content that exceeds context limits (~1500 lines).
 
 **How it works:**
 1. Team lead detects content type and determines partitioning strategy
 2. Team lead creates a team (`TeamCreate`) and tasks (`TaskCreate`, one per partition)
-3. Team lead spawns 3-5 analyst **teammates** (with `team_name` + `name`) — NOT plain subagents
-4. Analysts claim tasks from the shared `TaskList`, analyze chunks, and send findings via `SendMessage`
+3. Team lead spawns analyst **teammates** (scaled to partition count, with `team_name` + `name`) — NOT plain subagents
+4. Each analyst processes its pre-assigned chunk (1 analyst per partition, fresh context), writes findings to task description via `TaskUpdate`, and sends a one-line summary via `SendMessage`
 5. Team lead collects inbox messages and synthesizes (or spawns a synthesizer teammate)
 6. Graceful shutdown (`SendMessage` shutdown requests) and cleanup (`TeamDelete`)
 
@@ -306,10 +306,10 @@ TeamCreate({ team_name: "rlm-analysis", description: "RLM analysis of large file
 TaskCreate({ subject: "Analyze chunk 1/8", description: "File: path\nStart: 1\nEnd: 1100\nQuery: ...", activeForm: "Analyzing..." })
 // ... more TaskCreate calls
 
-// Spawn analyst TEAMMATES (they claim tasks and message findings)
-Task({ team_name: "rlm-analysis", name: "analyst-1", subagent_type: "swarm:rlm-chunk-analyzer", prompt: "...", run_in_background: true })
-Task({ team_name: "rlm-analysis", name: "analyst-2", subagent_type: "swarm:rlm-chunk-analyzer", prompt: "...", run_in_background: true })
-Task({ team_name: "rlm-analysis", name: "analyst-3", subagent_type: "swarm:rlm-chunk-analyzer", prompt: "...", run_in_background: true })
+// Spawn 1 analyst TEAMMATE per partition (fresh context each, staged in batches of ~15)
+Task({ team_name: "rlm-analysis", name: "analyst-1", subagent_type: "swarm:rlm-chunk-analyzer", prompt: "Analyze chunk 1...", run_in_background: true })
+Task({ team_name: "rlm-analysis", name: "analyst-2", subagent_type: "swarm:rlm-chunk-analyzer", prompt: "Analyze chunk 2...", run_in_background: true })
+// ... 1 analyst per partition
 
 // Collect inbox messages, synthesize, shutdown, cleanup
 ```
@@ -330,7 +330,7 @@ For directories with mixed content types, the RLM pattern extends to multi-file 
 - Small files of the same type batched into single analyst tasks
 - Two-phase synthesis: per-type (parallel) then cross-type (sequential)
 - Findings written to task descriptions (not SendMessage) to protect Team Lead context
-- Analyst count scales to task volume (1 per 3-5 tasks), distributed proportionally across types
+- 1 analyst per task (fresh context each), staged spawning in batches of ~15 for large workloads
 
 See [Multi-File Directory Analysis](../rlm-pattern/SKILL.md#multi-file-directory-analysis) for the full specification and [Multi-File RLM Design](../../docs/design/multi-file-rlm.md) for the design document.
 

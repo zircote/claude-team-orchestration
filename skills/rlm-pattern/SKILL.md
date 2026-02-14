@@ -23,6 +23,27 @@ This is a fan-out/fan-in coordination pattern built on agent teams.
 
 ---
 
+### Critical: What RLM is NOT
+
+RLM partitions **the data**, not the analysis. Every analyst receives the same query and examines all columns/fields in their chunk of rows. The analysis goals are the query — not separate tasks.
+
+**WRONG** (thematic decomposition):
+- Task 1: "Analyze error patterns" (reads entire file)
+- Task 2: "Analyze root causes" (reads entire file again)
+- Task 3: "Analyze trends" (reads entire file again)
+- Task 4: Synthesize (blocked by 1-3)
+
+**RIGHT** (data partitioning):
+- Task 1: "Chunk 1 of 10 — rows 1-5000" (query: find error patterns, root causes, and trends)
+- Task 2: "Chunk 2 of 10 — rows 5001-10000" (same query)
+- ...
+- Task 10: "Chunk 10 of 10 — rows 45001-50000" (same query)
+- Synthesis: aggregate all chunk findings
+
+If you find yourself creating tasks named after analysis concerns rather than data partitions, STOP — you are not doing RLM.
+
+---
+
 ## When to Use
 
 - File exceeds ~1500 lines or ~1500 CSV rows
@@ -32,6 +53,21 @@ This is a fan-out/fan-in coordination pattern built on agent teams.
 - Directory contains multiple files needing cross-file analysis (see [Multi-File Directory Analysis](#multi-file-directory-analysis))
 
 **Don't use when:** File fits in context (~1500 lines or fewer), a targeted Grep suffices, or the task is editing (not analyzing).
+
+---
+
+## Pre-Processing
+
+Before content-type detection, handle compressed or archived inputs:
+
+| Input | Action |
+|-------|--------|
+| `.zip` | `unzip <file> -d /tmp/rlm-extract/` — then detect content type of extracted file(s) |
+| `.gz` | `gunzip -k <file>` — then detect content type of decompressed file |
+| `.tar.gz` / `.tgz` | `tar xzf <file> -C /tmp/rlm-extract/` — then enumerate extracted files |
+
+If a zip/archive contains a single file, proceed with single-file RLM on the extracted file.
+If it contains multiple files, proceed with multi-file directory analysis on the extraction directory.
 
 ---
 
@@ -86,14 +122,14 @@ Read the first 50 lines and apply heuristics (first match wins):
 | Content Type | Partition By | Chunk Size | Analyst Agent |
 |-------------|-------------|------------|---------------|
 | Source code | Function/class boundaries | 150-300 lines | `swarm:rlm-code-analyzer` |
-| CSV/TSV | Row count | 500-5000 rows | `swarm:rlm-data-analyzer` |
+| CSV/TSV | Row count | ~2000 rows (narrow) / ~500-1500 rows (wide) | `swarm:rlm-data-analyzer` |
 | JSON | Top-level array elements | 200-500 elements | `swarm:rlm-json-analyzer` |
 | JSONL | Line count | 500-1000 lines | `swarm:rlm-json-analyzer` |
 | Log files | Line ranges + overlap | 200-5000 lines, 20-50 overlap | `swarm:rlm-chunk-analyzer` |
 | Prose/docs | Section headings or line ranges | 250 lines, 25 overlap | `swarm:rlm-chunk-analyzer` |
 | Config/markup/unknown | Line ranges + overlap | 200 lines, 20 overlap | `swarm:rlm-chunk-analyzer` |
 
-**Choose chunk sizes from the targets above and let partition count scale with data size.** Fewer partitions under-utilizes parallelism; the practical ceiling is the synthesizer's ability to consume all analyst findings (typically manageable up to ~50 partitions with compact reports). For very large files, prefer more smaller partitions over fewer oversized ones — analyst quality degrades when chunks are too large.
+**Choose chunk sizes from the targets above and let partition count scale with data size.** Fewer partitions under-utilizes parallelism and degrades analysis quality. Be aggressive with partitioning — more smaller chunks produce better findings than fewer large ones. There is no practical ceiling on partition count when using findings-in-task-descriptions mode and staged spawning.
 
 ### Source Code
 
@@ -106,10 +142,43 @@ Read the first 50 lines and apply heuristics (first match wins):
 ### Structured Data (CSV/TSV)
 
 - **Chunk boundary**: Row count (even splits).
-- **Chunk size**: Target ~2000 rows per partition for narrow data (< 20 columns), ~500 rows for wide data (20+ columns). Partition count scales naturally with total row count — a 50K-row file produces ~25 partitions at 2000 rows each.
+- **Chunk size**: Target ~2000 rows per partition for narrow data (< 20 columns), ~500-1500 rows for wide data (20+ columns). Use ~500 for dense wide data (most columns populated); use ~1500 for sparse wide data (many empty columns, e.g., Jira exports). Partition count scales naturally with total row count — a 50K-row file produces ~25 partitions at 2000 rows each.
 - **Overlap**: 0 — rows are independent.
 - **Header preservation**: Every chunk file includes the original header row as line 1.
 - **Partition method**: Write chunk files (`chunk-01.csv` through `chunk-N.csv`), each starting with the header.
+
+**Mandatory partitioning procedure for every CSV/TSV file:**
+
+```bash
+# 1. Count rows (subtract 1 for header)
+total_rows=$(($(wc -l < input.csv) - 1))
+
+# 2. Determine chunk size based on column count
+col_count=$(head -1 input.csv | awk -F',' '{print NF}')
+if [ "$col_count" -ge 20 ]; then
+  chunk_size=1500  # wide data (use ~500 for dense, ~1500 for sparse like Jira exports)
+else
+  chunk_size=2000  # narrow data
+fi
+
+# 3. Calculate partition count
+chunk_count=$(( (total_rows + chunk_size - 1) / chunk_size ))
+
+# 4. Extract header and write chunk files
+header=$(head -1 input.csv)
+mkdir -p /tmp/rlm-chunks
+for i in $(seq 1 $chunk_count); do
+  start=$(( (i - 1) * chunk_size + 2 ))  # +2 to skip header
+  end=$(( start + chunk_size - 1 ))
+  chunk_file=$(printf "/tmp/rlm-chunks/chunk-%02d.csv" $i)
+  echo "$header" > "$chunk_file"
+  sed -n "${start},${end}p" input.csv >> "$chunk_file"
+done
+
+# 5. Create one task per chunk file — NOT one task per source file
+```
+
+**One CSV file = many tasks.** A 10,000-row CSV produces ~7 chunks at 1500 rows/chunk or ~5 chunks at 2000 rows/chunk — never 1 task. If you are creating one task per source file, you are NOT partitioning — stop and run this procedure.
 
 ### JSON (single document)
 
@@ -199,10 +268,11 @@ Analysis focus: security
 **Multi-file mode:** Different analyst types run simultaneously when a directory contains mixed content types (e.g., Python + CSV + JSON). See [Multi-File Directory Analysis](#multi-file-directory-analysis).
 
 **Sizing guidance:**
-- Spawn 1 analyst per 3-5 partitions — each analyst claims multiple tasks from the shared TaskList
-- Scale analyst count proportionally: `analyst_count = ceil(partition_count / 4)`
-- More analysts = faster throughput but more context pressure from notification messages; fewer = slower but lighter on context
-- Beyond ~15 analysts, the cost and notification volume outweigh the parallelism benefit — consider whether the task can be decomposed differently
+- **1 analyst per partition, fresh context each** — every partition gets its own analyst agent with a clean context window. An analyst reads exactly one chunk, analyzes it, reports findings, and exits. No analyst processes more than one partition — fresh context prevents cross-chunk contamination
+- `analyst_count = partition_count` — 60 partitions = 60 analysts
+- There is no hard cap on analyst count. Haiku analysts are lightweight; scale to the data
+- **Staged spawning**: Spawn analysts in batches (e.g., 15 at a time). Each batch processes its assigned partitions. When one batch completes, spawn the next. Tasks are pre-assigned (1 task per analyst), not claimed from a shared pool
+- Use findings-in-task-descriptions mode (see Context Management) so analyst reports don't flood the leader's inbox
 
 ---
 
@@ -216,7 +286,9 @@ Analysis focus: security
 // Create the RLM team
 TeamCreate({ team_name: "rlm-analysis", description: "RLM analysis of production.log" })
 
-// Create one task per partition
+// Create one task per DATA PARTITION (not per analysis concern)
+// The query is the SAME for every task — only the data range differs
+// Each task will be pre-assigned to exactly one analyst — no shared claiming
 TaskCreate({ subject: "Analyze chunk 1 of 8", description: "File: /var/log/app/server.log\nStart line: 1\nEnd line: 5000\nQuery: What errors occurred?", activeForm: "Analyzing chunk 1..." })
 TaskCreate({ subject: "Analyze chunk 2 of 8", description: "File: /var/log/app/server.log\nStart line: 4951\nEnd line: 10000\nQuery: What errors occurred?", activeForm: "Analyzing chunk 2..." })
 // ... one TaskCreate per partition
@@ -225,30 +297,29 @@ TaskCreate({ subject: "Analyze chunk 2 of 8", description: "File: /var/log/app/s
 ### Step 2: Spawn Analyst Teammates
 
 ```javascript
-// Spawn analysts as TEAMMATES (team_name + name), NOT plain subagents
-// Each analyst claims tasks from the shared task list
-
-const analystPrompt = `You are an RLM chunk analyst on team "rlm-analysis".
-
-Workflow:
-1. Call TaskList to find available tasks
-2. Claim a pending task with TaskUpdate (set owner to your name)
-3. Read the chunk described in the task
-4. Analyze per the query
-5. Mark task completed with TaskUpdate
-6. Send your JSON findings to team-lead via SendMessage
-7. Check TaskList for more work — repeat until no tasks remain
-8. When no tasks remain, send "All tasks complete" to team-lead
-
-Query: What errors occurred and are there any patterns?
-Always send findings via SendMessage to "team-lead" — do NOT just return them.`
-
-// Calculate analyst count: ceil(partition_count / 4)
-// Example: 8 partitions → 2 analysts, 40 partitions → 10 analysts
+// 1 analyst per partition, each with a fresh context
+// Spawn in stages if partition count is large (e.g., batches of 15)
 // NOTE: Do NOT set model parameter — agent definition defaults to Haiku, which is correct for chunk analysis
-const analystCount = Math.ceil(partitionCount / 4)
-for (let i = 1; i <= analystCount; i++) {
-  Task({ team_name: "rlm-analysis", name: `analyst-${i}`, subagent_type: "swarm:rlm-chunk-analyzer", prompt: analystPrompt, run_in_background: true })
+const stageSize = 15
+for (let stage = 0; stage < Math.ceil(partitionCount / stageSize); stage++) {
+  const start = stage * stageSize + 1
+  const end = Math.min((stage + 1) * stageSize, partitionCount)
+
+  for (let i = start; i <= end; i++) {
+    Task({
+      team_name: "rlm-analysis",
+      name: `analyst-${i}`,
+      subagent_type: "swarm:rlm-chunk-analyzer",
+      prompt: `You are analyst-${i}. You have exactly one task: analyze chunk ${i} of ${partitionCount}.
+Query: What errors occurred and are there any patterns?
+File: /var/log/app/server.log
+Read your assigned chunk using the offset/limit from your task description.
+Write your JSON findings to the task description via TaskUpdate, then send a one-line summary to team-lead.`,
+      run_in_background: true
+    })
+  }
+  // Wait for this stage to complete before spawning next
+  // Run /compact between stages to clear notification messages
 }
 ```
 
@@ -289,7 +360,7 @@ TeamDelete()
 |--------|--------------------------------|------------------------------------------------|
 | Results delivery | Full output dumps into leader context | Compact messages via inbox |
 | Context pressure | 8 analysts x 4K = 32K chars in leader context | Messages arrive one at a time, manageable |
-| Work distribution | Fixed: 1 subagent per chunk | Flexible: analysts claim from shared task list |
+| Work distribution | Fixed: 1 subagent per chunk | Pre-assigned: 1 analyst per partition, fresh context each |
 | Lifecycle | Fire and forget | Graceful shutdown + cleanup |
 | Scaling | Must pre-assign chunks to agents | Agents self-balance across partitions |
 
@@ -327,7 +398,7 @@ The consolidated report should include:
 The RLM pattern creates many agents that report back. To prevent context exhaustion:
 
 1. **Use team orchestration** — spawn analysts as teammates (with `team_name` + `name`) so results arrive via inbox messages, not as full task output dumps in the leader's context
-2. **Fewer analysts than partitions** — target 1 analyst per 3-5 partitions, each claiming multiple tasks from the shared TaskList
+2. **1 analyst per partition, fresh context each** — every analyst processes exactly one chunk in a clean context window. Use findings-in-task-descriptions mode and staged spawning to manage context pressure — never reduce analyst count or reuse analyst contexts across chunks
 3. **Size partitions for analyst quality** — chunk size should stay within the content-type targets (see Partitioning Strategies). Let partition count scale with data size rather than forcing oversized chunks to hit a count target
 4. **Analyst reports must be compact** — structured summaries, not raw data
 5. **Pass by reference** — give analysts file paths and line ranges, never paste content into prompts
@@ -341,7 +412,7 @@ When processing directories (multi-file mode), additional strategies apply:
 
 7. **Findings-in-task-descriptions** — analysts write full JSON findings to their task description via `TaskUpdate` instead of sending them via `SendMessage`. Send only a one-line summary to team-lead. Synthesizers read findings via `TaskGet`.
 8. **Run /compact between phases** — after all analysts complete and before spawning synthesizers, compact the context to clear analyst notification messages
-9. **Scale analysts to task count** — target 1 analyst per 3-5 tasks across all types. For large workloads (50+ tasks), weigh the cost of additional analysts against the quality benefit of faster completion.
+9. **1 analyst per task, fresh context each** — every analyst processes exactly one chunk. For large workloads (50+ tasks), use staged spawning (batches of ~15 analysts) with findings-in-task-descriptions mode. Run /compact between stages.
 10. **Two-phase synthesis** — per-type synthesis (parallel) then cross-type synthesis (sequential) avoids overloading a single synthesizer with heterogeneous findings
 
 ---
@@ -358,6 +429,18 @@ Extend the single-file RLM pattern to process an entire directory of mixed-type 
 | Directory of files, all same type | Single-file RLM per file, or multi-file |
 | Directory with mixed content types needing cross-file analysis | **Multi-file RLM** |
 | "Review this project directory" | **Multi-file RLM** |
+
+### Critical: Every Large File Must Be Partitioned
+
+In multi-file mode, the most common failure is treating each source file as a single task. **This is wrong.** Multi-file RLM means:
+
+1. Enumerate all files in the directory
+2. **Partition every file that exceeds 1500 lines/rows into chunks** using the content-type partitioning strategy
+3. Create one task per chunk — not one task per file
+
+**Sanity check:** If your total task count equals your file count, you have not partitioned. Stop. Go back to step 2 and partition each large file into chunks using the procedures in [Partitioning Strategies](#partitioning-strategies).
+
+Example: 11 CSV files × 10,000 rows each ÷ 1500 rows per chunk = ~77 tasks total. If you have 11 tasks, you skipped partitioning.
 
 ### File Enumeration
 
@@ -398,7 +481,7 @@ json/jsonl tasks → swarm:rlm-json-analyzer
 log/prose/config tasks → swarm:rlm-chunk-analyzer
 ```
 
-Scale analyst count to total task count: target 1 analyst per 3-5 tasks, distributed proportionally across content types (at least 1 analyst per type that has tasks). For large workloads, weigh the cost of additional analysts against completion speed.
+1 analyst per task, fresh context each — every analyst processes exactly one chunk. Distribute proportionally across content types (at least 1 analyst per type that has tasks). For large workloads (50+ tasks), use staged spawning (batches of ~15 analysts) with findings-in-task-descriptions mode.
 
 ### Two-Phase Synthesis
 
@@ -414,19 +497,44 @@ Both phases use the existing `swarm:rlm-synthesizer` with different prompts. No 
 - Analysts write findings to task descriptions via `TaskUpdate`, send only one-line summaries to team-lead
 - Synthesizers read findings via `TaskGet` — raw findings never enter Team Lead's context
 - Run `/compact` between analyst and synthesis phases
-- Scale analyst count to task volume (1 per 3-5 tasks); weigh cost against throughput for large workloads
+- 1 analyst per task, fresh context each — use staged spawning for large workloads
 
 ### Abbreviated Walkthrough
 
 **Input:** `/project/src/` with 3 Python files (2800, 1900, 3200 lines), 2 JSON configs (250, 180 lines), 1 README (300 lines).
 
 1. **Enumerate**: 6 files, detect types → 3 source_code, 2 json, 1 prose
-2. **Budget**: Medium files partitioned by content-type chunk targets → 4+3+4 = 11 partitions; small files batched → 2 batch tasks; total = 13 tasks
-3. **Analyst mix**: 13 tasks ÷ 4 ≈ 4 analysts → 3 code analysts, 1 JSON analyst (proportional to task counts)
-4. **Analysts work**: claim tasks, analyze, write findings to task descriptions
+2. **Budget**: Medium files partitioned by content-type chunk targets (~200-line chunks for source code) → 14+10+16 = 40 partitions (approximate — actual count depends on function/class boundary detection); small files batched → 2 batch tasks; total = 42 tasks
+3. **Analyst mix**: 42 tasks = 42 analysts (1:1) → 40 code analysts, 2 JSON analysts; staged spawning in batches of 15
+4. **Analysts work**: each analyst processes its pre-assigned chunk, writes findings to task descriptions
 5. **Phase 1 synthesis**: "Synthesize code findings" + "Synthesize JSON findings" (parallel)
 6. **Phase 2 synthesis**: Cross-type synthesis (blocked by Phase 1)
 7. **Final report**: Per-file findings + cross-file analysis + recommendations
+
+### Abbreviated Walkthrough: Large CSV Directory
+
+**Input:** `csi/exports/` with 11 CSV files, each 10,000+ rows and 2000+ columns (wide data).
+
+1. **Enumerate**: 11 files, all detect as `structured_data` (`.csv` extension → High confidence)
+2. **Partition each file**: Wide data (2000+ columns) → ~1500 rows per chunk.
+   - `file-01.csv` (12,000 rows) → 8 chunks
+   - `file-02.csv` (10,500 rows) → 7 chunks
+   - ... (each file produces 7-10 chunks)
+   - **Total: ~88 chunk files, 88 tasks**
+   - Sanity check: 88 tasks >> 11 files. Partitioning is correct.
+3. **Chunk file creation**: For each source CSV, run the partitioning procedure:
+   ```bash
+   header=$(head -1 file-01.csv)
+   mkdir -p /tmp/rlm-chunks/file-01
+   # Write chunk-01.csv through chunk-08.csv, each starting with header
+   ```
+4. **Analyst mix**: 88 tasks = 88 data analysts (1:1). Staged spawning: 6 stages of 15 (15+15+15+15+15+13)
+5. **Analysts work**: each reads its pre-assigned chunk file, analyzes all columns, writes JSON findings to task description
+6. **Phase 1 synthesis**: Single "Synthesize CSV findings" task (all 88 analyst tasks are same type)
+7. **Phase 2 synthesis**: Not needed — only one content type, Phase 1 produces the final report
+8. **Final report**: Frequency distributions, temporal trends, missing data rates, outliers, text patterns
+
+**Key difference from mixed-type walkthrough:** All files are the same type, so there's only one Phase 1 synthesis task and no Phase 2 cross-type synthesis needed.
 
 ---
 

@@ -131,14 +131,7 @@ Spawn reviewers for security, code quality, and architecture.
 Have each send findings to team-lead, then synthesize a summary.
 ```
 
-### What happens
-
-1. **TeamCreate** — Claude creates a team with a shared task list
-2. **Task spawning** — Three agents start in parallel, each with a focused prompt
-3. **Independent work** — Each agent reviews code through its own lens
-4. **Message delivery** — Findings arrive automatically at the team lead
-5. **Synthesis** — The lead combines all findings into a report
-6. **Cleanup** — Agents shut down and the team is deleted
+> See [Team Lifecycle](concepts.md#team-lifecycle) for what happens under the hood.
 
 ### Interact with teammates
 
@@ -157,4 +150,5 @@ Have each send findings to team-lead, then synthesize a summary.
 
 - Read [Patterns](patterns.md) to learn the seven orchestration patterns
 - Read [Agent Types](agent-types.md) to pick the right agent for each role
+- Read [Reference](reference.md) for message types, task statuses, and configuration options
 - Try the [complete workflow examples](../skills/orchestration-patterns/examples/complete-workflows.md)

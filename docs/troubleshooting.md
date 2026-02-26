@@ -261,41 +261,6 @@ Or enable **delegate mode** (Shift+Tab) to restrict the lead to coordination-onl
 
 ---
 
-## Known Limitations
-
-These are current limitations of the agent teams feature:
-
-1. **No session resumption** — `/resume` doesn't restore in-process teammates
-2. **Task status can lag** — Teammates may forget to mark tasks complete
-3. **One team per session** — Clean up before creating a new team
-4. **No nested teams** — Only the lead can manage the team
-5. **Lead is fixed** — Can't promote or transfer leadership
-6. **Permissions set at spawn** — Can change after, not during spawn
-7. **Split panes need tmux/iTerm2** — Not supported in VS Code terminal, Windows Terminal, or Ghostty
-
----
-
-## Debugging Commands
-
-```bash
-# Check team config
-cat ~/.claude/teams/{team}/config.json | jq '.members[] | {name, agentType, backendType}'
-
-# Check teammate inboxes
-cat ~/.claude/teams/{team}/inboxes/{agent}.json | jq '.'
-
-# List all teams
-ls ~/.claude/teams/
-
-# Check task states
-cat ~/.claude/tasks/{team}/*.json | jq '{id, subject, status, owner, blockedBy}'
-
-# Watch for new messages
-tail -f ~/.claude/teams/{team}/inboxes/team-lead.json
-
-# Check tmux sessions
-tmux ls
-
-# Kill orphaned session
-tmux kill-session -t <session-name>
-```
+> See [Known Limitations](reference.md#known-limitations) for current feature limitations.
+>
+> See [Debugging Commands](reference.md#debugging-commands) for diagnostic shell commands.

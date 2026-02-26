@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-26
+
+### Added
+
+- **JSONL Log Analyzer skill** (`skills/jsonl-log-analyzer/SKILL.md`): Automated schema-aware JSONL log analysis — discovers field schema via `jq`, generates tailored extraction recipes, and orchestrates the RLM fan-out/fan-in pipeline with `swarm:rlm-json-analyzer` analysts
+- **JSONL Log Analysis examples** in `docs/rlm-examples.md`: Copy-paste prompts for error investigation, traffic analysis, and incident timeline reconstruction with comparison to standard JSON/JSONL RLM
+- **Cross-references** in `docs/agent-types.md` and `skills/agent-types/SKILL.md` linking `swarm:rlm-json-analyzer` to the new JSONL Log Analyzer skill
+- **`docs/concepts.md`** (explanation): Team lifecycle, pattern mechanics, RLM content processing internals, cross-file analysis, task dependencies
+- **`docs/reference.md`** (reference): Consolidated lookup tables — primitives, pattern quick reference, message types, task statuses, task fields, configuration, spawn backends, RLM tables, known limitations, debugging commands
+
+### Changed
+
+- Restructured `docs/` along the Diataxis framework (tutorial, how-to, reference, explanation separation)
+- Refocused `docs/patterns.md` as how-to: extracted "How it works" blocks to `concepts.md`, pattern table and agent recs to `reference.md`, absorbed "Choosing Agents for Teams" from `agent-types.md`
+- Cleaned `docs/rlm-examples.md` as how-to: extracted "What Claude does" blocks to `concepts.md`, reference tables to `reference.md`, added cross-reference links
+- Cleaned `docs/troubleshooting.md`: extracted Known Limitations and Debugging Commands to `reference.md`
+- Cleaned `docs/getting-started.md`: extracted "What happens" lifecycle to `concepts.md`, added reference link to Next Steps
+- Cleaned `docs/agent-types.md`: moved "Choosing Agents for Teams" to `patterns.md`, added See Also footer
+
 ## [1.3.0] - 2026-02-13
 
 ### Added
@@ -122,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Based on the [Claude Code Swarm Orchestration Skill](https://gist.github.com/kieranklaassen/4f2aba89594a4aea4ad64d753984b2ea) by [@kieranklaassen](https://github.com/kieranklaassen). Decomposed from a monolithic gist into modular, maintainable plugin skills.
 
+[1.4.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.4.0
 [1.0.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.0.0
 [1.1.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.1.0
 [1.2.0]: https://github.com/zircote/claude-team-orchestration/releases/tag/v1.2.0

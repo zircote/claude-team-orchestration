@@ -14,6 +14,7 @@ Practical example prompts for every RLM mode. Copy, adapt the file path, and pas
 | [Content-Aware: Source Code](#content-aware-source-code) | One large source file | Function-boundary chunks, code analysts |
 | [Content-Aware: CSV/TSV](#content-aware-csvtsv) | One large data file | Header-preserving chunks, data analysts |
 | [Content-Aware: JSON/JSONL](#content-aware-jsonjsonl) | One large JSON file | Schema-aware chunks, JSON analysts |
+| [JSONL Log Analysis](#jsonl-log-analysis) | JSONL log files | Schema discovery, tailored jq recipes, JSON analysts |
 | [Directory Analysis](#directory-analysis) | Multiple files, same type | Per-file partitioning, single analyst type |
 | [Multi-Type Directory](#multi-type-directory-analysis) | Mixed file types in a directory | Mixed analysts, two-phase synthesis |
 
@@ -37,12 +38,7 @@ Analyze the compliance document at docs/soc2-audit-report.txt for gaps,
 inconsistencies, and areas needing remediation. Use the RLM pattern.
 ```
 
-**What Claude does:**
-1. Detects content type (`log` or `prose`)
-2. Splits into ~5-10 chunks by line ranges (with overlap for logs)
-3. Spawns 1 `swarm:rlm-chunk-analyzer` agent per chunk (Haiku), each with fresh context
-4. Each analyst processes its pre-assigned chunk (1 analyst per partition, staged spawning for large workloads)
-5. Synthesizes all findings into a consolidated report
+> See [How RLM processes logs and prose](concepts.md#basic-logs-and-prose) for what happens internally.
 
 ---
 
@@ -72,24 +68,7 @@ Analyze lib/data_pipeline.rb for code quality issues using the RLM pattern.
 Look for complexity, dead code, and anti-patterns.
 ```
 
-**What Claude does:**
-1. Detects `source_code` from file extension
-2. Scans for function/class boundaries at indentation level 0
-3. Chunks at semantic boundaries (150-300 lines per chunk)
-4. Prepends the file's import block to every chunk for dependency context
-5. Spawns `swarm:rlm-code-analyzer` agents with the specified analysis focus
-6. Findings include scope context like `function:process_payment` and severity levels
-
-### Analysis Focus Options
-
-You can steer the analysis by mentioning what you care about:
-
-| Your Goal | What to Say | What Analysts Prioritize |
-|-----------|------------|-------------------------|
-| General review | "review for code quality" | Logic errors, complexity, patterns |
-| Security audit | "audit for security" or "find vulnerabilities" | Injection, auth, secrets, unsafe ops |
-| Architecture | "review the architecture" | Coupling, SOLID, dependency patterns |
-| Performance | "analyze performance" | Algorithmic complexity, N+1, blocking calls |
+> See [How RLM processes source code](concepts.md#source-code) for what happens internally. See [Analysis Focus Options](reference.md#rlm-analysis-focus-options) for steering analyst priorities.
 
 ---
 
@@ -113,20 +92,7 @@ Identify top issue categories, recurring error patterns, and resolution
 time statistics.
 ```
 
-**What Claude does:**
-1. Detects `structured_data` from `.csv` extension
-2. Reads the header row and preserves it in every chunk
-3. Splits by row count (~2000 rows per chunk for narrow data, ~500-1500 for wide data with 20+ columns)
-4. Spawns `swarm:rlm-data-analyzer` agents — column-aware, reports distributions and statistics
-5. Findings are aggregatable: the synthesizer sums counts across chunks
-
-### What Data Analysts Report
-
-- Frequency distributions per column (e.g., status breakdown, region counts)
-- Outliers and anomalies (e.g., unusually high values, rare categories)
-- Missing data rates per column
-- Correlations between dimensions
-- Temporal patterns if date columns are present
+> See [How RLM processes CSV/TSV](concepts.md#csvtsv) for what happens internally. See [What Data Analysts Report](reference.md#rlm-data-analyst-output) for the standard output format.
 
 ---
 
@@ -150,13 +116,47 @@ RLM pattern. Check for stale flags, conflicting rules, and schema
 consistency across entries.
 ```
 
-**What Claude does:**
-1. Detects `json` or `jsonl` from extension (or by content sniffing)
-2. For JSON: splits top-level array into valid sub-arrays (200-500 elements per chunk)
-3. For JSONL: splits by line count (500-1000 lines per chunk)
-4. Injects a schema summary (field names + types) into each analyst's prompt
-5. Spawns `swarm:rlm-json-analyzer` agents — schema-aware, reports field distributions and type consistency
-6. Detects schema drift (objects with different shapes within the same dataset)
+> See [How RLM processes JSON/JSONL](concepts.md#jsonjsonl) for what happens internally.
+
+---
+
+## JSONL Log Analysis
+
+Analyze large JSONL log files with automated schema discovery and tailored jq recipes. This is a specialization of JSON/JSONL RLM — it auto-discovers the log schema, classifies fields (timestamp, level, error, etc.), and generates extraction recipes before spawning analysts.
+
+> **Skill reference:** See [`skills/jsonl-log-analyzer/SKILL.md`](../skills/jsonl-log-analyzer/SKILL.md) for the full procedure.
+
+### Example: Error Investigation
+
+```
+Analyze the application logs at /var/log/app/events.jsonl for error patterns.
+Use the JSONL log analyzer skill. I need to understand:
+- What types of errors are most frequent?
+- Are there temporal spikes?
+- Which services are generating the most errors?
+```
+
+### Example: Traffic Analysis
+
+```
+Use the JSONL log analyzer to analyze the API gateway log at
+data/gateway-access.jsonl. Report on:
+- Request volume by endpoint and status code
+- P50/P95 latency patterns over time
+- Any anomalous traffic patterns or suspicious request bursts
+```
+
+### Example: Incident Timeline
+
+```
+Investigate the production incident using logs at /tmp/incident-2026-02-25.jsonl.
+Use the JSONL log analyzer skill to:
+- Build a timeline of events leading to the outage
+- Trace affected request IDs across services
+- Identify the root cause service and error type
+```
+
+> See [How JSONL Log Analysis works](concepts.md#jsonl-log-analysis) for what happens internally. See [Standard vs JSONL Log Analyzer](reference.md#standard-vs-jsonl-log-analyzer) for when to use each mode.
 
 ---
 
@@ -178,15 +178,7 @@ Analyze all CSV files in data/exports/ using the RLM pattern.
 Report data quality issues, distributions, and cross-file inconsistencies.
 ```
 
-**What Claude does:**
-1. Enumerates files using Glob (respects default exclusions like `node_modules/`, `.git/`)
-2. Detects the same content type across all files
-3. Applies the tiered partition budget:
-   - Small files (<=1500 lines): batched together, no splitting
-   - Medium files (1501-5000 lines): partitioned using content-type chunk targets
-   - Large files (>5000 lines): partitioned using content-type chunk targets (scales with file size)
-4. Spawns one analyst per partition (1:1 ratio, fresh context each), staged in batches of ~15 for large workloads
-5. Synthesizes findings across all files
+> See [How RLM processes directories](concepts.md#directory-and-multi-type-analysis) for what happens internally.
 
 ---
 
@@ -220,30 +212,7 @@ and shell scripts. Focus on data quality issues, transformation correctness,
 and error handling.
 ```
 
-**What Claude does:**
-1. Enumerates and classifies every file by content type (extension + content sniffing)
-2. Groups files by type and applies per-type partitioning strategies
-3. Allocates a data-driven partition budget with tiered sizing
-4. Batches small same-type files together to reduce task count
-5. Spawns mixed analyst types simultaneously (up to 4 different types, scaled to task volume):
-   - `swarm:rlm-code-analyzer` for source files
-   - `swarm:rlm-data-analyzer` for CSV/TSV files
-   - `swarm:rlm-json-analyzer` for JSON/JSONL files
-   - `swarm:rlm-chunk-analyzer` for logs, docs, configs
-6. Analysts write findings to task descriptions (not messages) to protect team lead context
-7. **Phase 1 synthesis**: per-type summaries in parallel (e.g., "all Python findings", "all CSV findings")
-8. **Phase 2 synthesis**: cross-type final report correlating findings across file types
-9. Final report includes: Per-File Findings, Cross-File Analysis, and Recommendations
-
-### What Cross-File Analysis Catches
-
-Multi-type analysis detects things single-file analysis cannot:
-
-- Config values referenced in code that don't match
-- Data schemas in JSON that diverge from CSV column structures
-- Hardcoded values in code that should come from config
-- Test fixtures that don't match production data patterns
-- Naming inconsistencies across file types
+> See [How RLM processes directories](concepts.md#directory-and-multi-type-analysis) for what happens internally. See [Cross-File Analysis](concepts.md#cross-file-analysis) for what multi-type analysis catches that single-file cannot.
 
 ---
 
@@ -297,26 +266,11 @@ Focus on the core business logic.
 
 ---
 
-## Feature Comparison
-
-| Feature | Basic RLM | Content-Aware | Directory | Multi-Type |
-|---------|-----------|--------------|-----------|------------|
-| Content-type detection | No | Yes | Yes | Yes |
-| Semantic chunking | No (line ranges) | Yes (type-specific) | Yes | Yes |
-| Header preservation (CSV) | No | Yes | Yes | Yes |
-| Import injection (code) | No | Yes | Yes | Yes |
-| Schema awareness (JSON) | No | Yes | Yes | Yes |
-| Multiple analyst types | No | No | No | Yes |
-| Small file batching | No | No | Yes | Yes |
-| Two-phase synthesis | No | No | No | Yes |
-| Cross-file correlation | No | No | Limited | Yes |
-| Partition budget | Manual | Auto (per type) | Auto (tiered) | Auto (tiered + data-driven) |
-
----
-
 ## Further Reading
 
 - [RLM Pattern Skill](../skills/rlm-pattern/SKILL.md) — Full technical reference
+- [RLM Concepts](concepts.md#rlm-content-processing) — How content processing works internally
+- [RLM Reference Tables](reference.md#rlm-analysis-focus-options) — Analysis options, feature comparison, data output format
 - [Content-Aware RLM Design](design/content-aware-rlm.md) — Design decisions for type detection and routing
 - [Multi-File RLM Design](design/multi-file-rlm.md) — Design decisions for directory analysis
 - [Agent Types](agent-types.md) — All available analyst agents

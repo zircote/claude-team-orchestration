@@ -2,19 +2,7 @@
 
 Seven proven patterns for structuring agent teams. Choose based on your task's coordination needs.
 
----
-
-## Pattern Selection Guide
-
-| Pattern | When to Use | Agents | Dependencies |
-|---------|------------|--------|-------------|
-| [Parallel Specialists](#parallel-specialists) | Multiple independent reviews | 2-5 | None |
-| [Pipeline](#pipeline) | Sequential stages | 3-5 | Linear chain |
-| [Swarm](#swarm) | Many similar tasks | 3-5 | None |
-| [Research + Implementation](#research--implementation) | Learn then build | 2 | Phase gate |
-| [Plan Approval](#plan-approval) | High-risk changes | 1-2 | Approval gate |
-| [Multi-File Refactoring](#multi-file-refactoring) | Cross-file changes | 2-4 | Fan-in |
-| [RLM (Recursive Language Model)](#rlm-recursive-language-model) | Files exceeding context | 1 per partition | Fan-out/fan-in |
+> For a quick comparison table, see [Pattern Quick Reference](reference.md#pattern-quick-reference). For how each pattern works internally, see [Concepts](concepts.md#how-each-pattern-works).
 
 ---
 
@@ -33,18 +21,7 @@ Create a team to review PR #42 with three specialists:
 Have each send findings to team-lead, then synthesize.
 ```
 
-**How it works:**
-1. Create team, spawn specialists in parallel
-2. Each reviews independently through its own lens
-3. Findings arrive as messages to the lead
-4. Lead synthesizes into unified report
-5. Shutdown and cleanup
-
-**Agent recommendations:**
-- Security: `sdlc:security-reviewer`
-- Quality: `feature-dev:code-reviewer`
-- Architecture: `refactor:architect`
-- Simplicity: `code-simplifier:code-simplifier`
+**Key detail:** Spawn all specialists in a single burst. Each works independently, so no task dependencies needed.
 
 ---
 
@@ -66,13 +43,6 @@ Create a pipeline team for OAuth2:
 Each stage should wait for the previous to complete.
 ```
 
-**How it works:**
-1. Create team and all tasks upfront
-2. Set task dependencies: #2 blocked by #1, #3 blocked by #2, etc.
-3. Spawn all workers at once — they'll wait for their dependencies
-4. As each task completes, the next auto-unblocks
-5. Workers claim and complete newly available tasks
-
 **Key detail:** Use `TaskUpdate` with `addBlockedBy` to create the dependency chain. The system auto-unblocks tasks when dependencies complete.
 
 ---
@@ -89,13 +59,6 @@ Create a swarm team to review these 10 files for security issues.
 Spawn 3 workers that each grab the next available file, review it,
 and move on until all files are done.
 ```
-
-**How it works:**
-1. Create team and a task for each work item (no dependencies)
-2. Spawn N workers with identical prompts: "check TaskList, claim next pending task, do it, repeat"
-3. Workers race to claim tasks — file locking prevents double-claims
-4. Each worker processes multiple tasks, naturally balancing load
-5. When no tasks remain, workers go idle
 
 **Tips:**
 - 3 workers is a good starting point; add more for large task pools
@@ -116,11 +79,6 @@ First, research caching best practices for our API using an adr:adr-researcher a
 Then use the findings to implement caching in the user controller with a general-purpose agent.
 ```
 
-**How it works:**
-1. Spawn a research agent (synchronous, returns result)
-2. Feed research findings into the implementation prompt
-3. Spawn an implementation agent with the enriched prompt
-
 **Key detail:** This pattern uses sequential subagents, not a full team. The research result flows directly into the implementation prompt.
 
 ---
@@ -137,14 +95,6 @@ Spawn an architect teammate in plan mode to design the database migration.
 Don't let them implement until I've approved the plan.
 Only approve plans that include rollback procedures and data validation.
 ```
-
-**How it works:**
-1. Create team, spawn teammate with `mode: "plan"`
-2. Teammate works in read-only mode, designing the plan
-3. Teammate sends a `plan_approval_request` to the lead
-4. Lead reviews and approves or rejects with feedback
-5. If rejected, teammate revises and resubmits
-6. Once approved, teammate exits plan mode and implements
 
 **Key detail:** Use the `mode: "plan"` parameter when spawning to enforce plan approval. The lead can set approval criteria in its prompt.
 
@@ -165,13 +115,6 @@ Create a team to refactor the auth module:
 
 Workers 1 and 2 can work in parallel. Worker 3 waits for both to finish.
 ```
-
-**How it works:**
-1. Create team and tasks with fan-in dependencies (#3 blocked by #1 AND #2)
-2. Spawn workers for each task
-3. Independent tasks run in parallel
-4. Dependent tasks auto-unblock when all blockers complete
-5. Final worker validates the integrated changes
 
 **Key detail:** Fan-in dependencies ensure the test worker doesn't start until all code changes are complete. Use `TaskUpdate({ taskId: "3", addBlockedBy: ["1", "2"] })`.
 
@@ -199,14 +142,6 @@ Detect content types per file, partition by type-specific strategies,
 spawn mixed analyst types, and produce a cross-file synthesis.
 ```
 
-**How it works:**
-1. Team lead detects content type per file and determines partitioning strategy
-2. Team lead divides content into chunks (code: function boundaries, CSV: row splits with header, JSON: element splits, logs: line ranges)
-3. Content-type-specific analyst agents analyze partitions in parallel
-4. Each analyst reports structured findings back to team lead
-5. Team lead (or a dedicated synthesizer agent) combines all reports
-6. Shutdown and cleanup
-
 **Key details:**
 - Automatic content-type detection (extension mapping + content sniffing)
 - Type-specific partitioning preserves semantic boundaries (functions, CSV headers, valid JSON)
@@ -214,14 +149,41 @@ spawn mixed analyst types, and produce a cross-file synthesis.
 - For multi-file directories: small files batched by type, two-phase synthesis (per-type then cross-type), findings written to task descriptions to protect Team Lead context
 - See [swarm:rlm-pattern](../skills/rlm-pattern/SKILL.md) for full documentation
 
-**Agent recommendations:**
-- Source code: `swarm:rlm-code-analyzer` (Haiku)
-- CSV/TSV data: `swarm:rlm-data-analyzer` (Haiku)
-- JSON/JSONL: `swarm:rlm-json-analyzer` (Haiku)
-- Logs/prose/config: `swarm:rlm-chunk-analyzer` (Haiku)
-- Synthesizer: `swarm:rlm-synthesizer` (Sonnet)
-
 **Do NOT override analyst models.** Leave `model` unset — Haiku is correct for structured analysis.
+
+---
+
+## Choosing Agents for Teams
+
+When spawning teammates, pick the agent type that matches the task:
+
+```javascript
+// Research phase — read-only agent is sufficient
+Task({
+  team_name: "my-team",
+  name: "researcher",
+  subagent_type: "adr:adr-researcher",
+  prompt: "Research OAuth2 best practices...",
+  run_in_background: true
+})
+
+// Implementation phase — needs full tool access
+Task({
+  team_name: "my-team",
+  name: "implementer",
+  subagent_type: "general-purpose",
+  prompt: "Implement OAuth2 authentication...",
+  run_in_background: true
+})
+```
+
+**Tips:**
+- Use `model: "haiku"` for fast, cheap Explore agents
+- Use `general-purpose` when the agent needs to edit files
+- Use specialized review agents for focused audits
+- Never assign implementation work to read-only agents (Explore, Plan)
+
+> For the full agent selection guide, see [Agent Types](agent-types.md).
 
 ---
 
@@ -229,13 +191,13 @@ spawn mixed analyst types, and produce a cross-file synthesis.
 
 ### Pick the right pattern
 
-- **Independent tasks, same type** → Swarm
-- **Independent tasks, different focus** → Parallel Specialists
-- **Sequential phases** → Pipeline
-- **Learn then build** → Research + Implementation
-- **Risky changes** → Plan Approval
-- **Cross-file changes with integration step** → Multi-File Refactoring
-- **Large document analysis** → RLM
+- **Independent tasks, same type** -> Swarm
+- **Independent tasks, different focus** -> Parallel Specialists
+- **Sequential phases** -> Pipeline
+- **Learn then build** -> Research + Implementation
+- **Risky changes** -> Plan Approval
+- **Cross-file changes with integration step** -> Multi-File Refactoring
+- **Large document analysis** -> RLM
 
 ### Avoid file conflicts
 

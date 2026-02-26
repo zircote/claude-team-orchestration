@@ -22,7 +22,7 @@ Which agents are available and when to use each. Match the agent's tool access t
 | Code review | **feature-dev:code-reviewer** | Bugs, logic errors, conventions |
 | Source code chunk analysis | **swarm:rlm-code-analyzer** | Code-aware, scope context, analysis focus |
 | Data/CSV chunk analysis | **swarm:rlm-data-analyzer** | Column-aware, distributions, statistics |
-| JSON chunk analysis | **swarm:rlm-json-analyzer** | Schema-aware, structural patterns |
+| JSON chunk analysis | **swarm:rlm-json-analyzer** | Schema-aware, structural patterns. Also used by [JSONL Log Analyzer](../skills/jsonl-log-analyzer/SKILL.md) |
 | General chunk analysis | **swarm:rlm-chunk-analyzer** | Haiku, fast, structured JSON output |
 | Synthesize chunk findings | **swarm:rlm-synthesizer** | Sonnet, aggregation and deduplication |
 
@@ -106,7 +106,6 @@ Available when the corresponding plugins are installed. Plugin agents use the fo
 | `adr:adr-researcher` | Codebase analysis + web search for best practices |
 | `feature-dev:code-explorer` | Trace execution paths, map architecture, dependencies |
 | `feature-dev:code-architect` | Design feature architectures based on existing patterns |
-| `mnemonic:mnemonic-search-subcall` | Search across stored knowledge |
 
 ### Refactoring Agents
 
@@ -136,7 +135,7 @@ Content-aware chunk analyzers — the Team Lead selects the analyst based on det
 |-------|-------|
 | `swarm:rlm-code-analyzer` | Source code analysis with function/class scope context, analysis focus (Haiku) |
 | `swarm:rlm-data-analyzer` | CSV/TSV analysis with column distributions and statistics (Haiku) |
-| `swarm:rlm-json-analyzer` | JSON/JSONL analysis with schema patterns and field distributions (Haiku) |
+| `swarm:rlm-json-analyzer` | JSON/JSONL analysis with schema patterns and field distributions (Haiku). Also used by the [JSONL Log Analyzer](../skills/jsonl-log-analyzer/SKILL.md) skill for log-specific schema-aware analysis |
 | `swarm:rlm-chunk-analyzer` | General-purpose: logs, prose, config, markup (Haiku) |
 | `swarm:rlm-synthesizer` | Aggregate chunk findings into coherent reports (Sonnet) |
 
@@ -144,32 +143,6 @@ Content-aware chunk analyzers — the Team Lead selects the analyst based on det
 
 ---
 
-## Choosing Agents for Teams
+## See Also
 
-When spawning teammates, pick the agent type that matches the task:
-
-```javascript
-// Research phase — read-only agent is sufficient
-Task({
-  team_name: "my-team",
-  name: "researcher",
-  subagent_type: "adr:adr-researcher",
-  prompt: "Research OAuth2 best practices...",
-  run_in_background: true
-})
-
-// Implementation phase — needs full tool access
-Task({
-  team_name: "my-team",
-  name: "implementer",
-  subagent_type: "general-purpose",
-  prompt: "Implement OAuth2 authentication...",
-  run_in_background: true
-})
-```
-
-**Tips:**
-- Use `model: "haiku"` for fast, cheap Explore agents
-- Use `general-purpose` when the agent needs to edit files
-- Use specialized review agents for focused audits
-- Never assign implementation work to read-only agents (Explore, Plan)
+- [Choosing Agents for Teams](patterns.md#choosing-agents-for-teams) — How to pick the right agent when spawning teammates

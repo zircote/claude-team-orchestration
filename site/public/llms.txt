@@ -1,0 +1,39 @@
+# swarm — Multi-agent orchestration for Claude Code
+
+> Plugin for Claude Code that coordinates teams of agents with shared tasks, inter-agent messaging, and 7 proven orchestration patterns.
+
+## Overview
+
+swarm is a Claude Code plugin that enables multi-agent orchestration. It provides:
+- Team creation and lifecycle management
+- Shared task lists with dependencies
+- Inter-agent messaging (direct, broadcast, protocol)
+- 7 orchestration patterns: Parallel Specialists, Pipeline, Swarm, Research+Implementation, Plan Approval, Multi-File Refactoring, RLM
+- RLM (Recursive Language Model) pattern for large-file analysis with content-aware chunking
+
+## Documentation
+
+- Getting Started: /claude-team-orchestration/getting-started/getting-started/
+- Orchestration Patterns: /claude-team-orchestration/how-to/patterns/
+- RLM Examples: /claude-team-orchestration/how-to/rlm-examples/
+- Agent Types: /claude-team-orchestration/reference/agent-types/
+- Reference: /claude-team-orchestration/reference/reference/
+- Concepts: /claude-team-orchestration/concepts/concepts/
+
+## Skills
+
+- orchestrating — Entry point for multi-agent orchestration
+- team-management — Create, configure, and manage agent teams
+- task-system — Shared task lists with dependencies
+- messaging — Inter-agent communication
+- agent-types — Agent selection guide
+- orchestration-patterns — 7 proven coordination patterns
+- rlm-pattern — Large-file analysis with content-aware chunking
+- jsonl-log-analyzer — Schema-aware JSONL log analysis
+- spawn-backends — Agent display modes (in-process, tmux, iTerm2)
+- error-handling — Debug and recovery strategies
+
+## Source
+
+GitHub: https://github.com/zircote/claude-team-orchestration
+License: MIT

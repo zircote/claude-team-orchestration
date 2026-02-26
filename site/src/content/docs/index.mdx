@@ -1,0 +1,56 @@
+---
+title: "swarm"
+description: "Multi-agent orchestration plugin for Claude Code."
+template: splash
+hero:
+  tagline: Multi-agent orchestration plugin for Claude Code. Coordinate teams of agents with shared tasks, inter-agent messaging, and 7 proven patterns.
+  actions:
+    - text: Get Started
+      link: /claude-team-orchestration/getting-started/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/zircote/claude-team-orchestration
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Team Management" icon="group">
+    Create and manage agent teams with specialized roles, shared task lists, and lifecycle control.
+  </Card>
+  <Card title="7 Patterns" icon="puzzle">
+    Parallel Specialists, Pipeline, Swarm, Research+Implementation, Plan Approval, Multi-File Refactoring, and RLM.
+  </Card>
+  <Card title="RLM Pattern" icon="document">
+    Content-aware chunked analysis for files exceeding context limits. Auto-detects file types with specialized analysts.
+  </Card>
+  <Card title="Inter-Agent Messaging" icon="comment">
+    Direct messages, broadcasts, shutdown protocols, and plan approval flows between agents.
+  </Card>
+</CardGrid>
+
+## Quick Start
+
+```bash
+# Install the plugin
+claude install gh:zircote/claude-team-orchestration
+
+# Use orchestration in Claude Code
+/swarm:orchestrating
+```
+
+## What is swarm?
+
+**swarm** is a Claude Code plugin that enables multi-agent orchestration. It provides primitives for creating teams of agents that work together on complex tasks through shared task lists, inter-agent messaging, and proven coordination patterns.
+
+Key capabilities:
+
+- **Team lifecycle** — Create, spawn, delegate, and shut down agent teams
+- **Shared tasks** — Task lists with dependencies, ownership, and progress tracking
+- **Messaging** — Direct messages, broadcasts, and structured protocol messages
+- **7 patterns** — Battle-tested orchestration patterns for common workflows
+- **RLM** — Recursive Language Model pattern for analyzing files that exceed context limits
+- **Multiple backends** — In-process, tmux, and iTerm2 spawn modes

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <rect width="1280" height="640" fill="#1a1a2e"/>
+  <text x="640" y="280" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#e2e8f0">swarm</text>
+  <text x="640" y="360" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94a3b8">Multi-agent orchestration for Claude Code</text>
+  <text x="640" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="#64748b">Teams / Tasks / Messaging / Patterns / RLM</text>
+</svg>

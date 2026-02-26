@@ -1,0 +1,257 @@
+---
+title: "Reference"
+description: "Consolidated lookup tables, configuration options, and API reference."
+---
+
+Consolidated lookup tables, configuration options, and API reference for agent teams.
+
+---
+
+## Primitives
+
+| Primitive | What It Is | File Location |
+|-----------|-----------|---------------|
+| **Agent** | A Claude instance that can use tools. You are an agent. Subagents are agents you spawn. | N/A (process) |
+| **Team** | A named group of agents working together. One leader, multiple teammates. | `~/.claude/teams/{name}/config.json` |
+| **Teammate** | An agent that joined a team. Has a name, color, inbox. Spawned via Task with `team_name` + `name`. | Listed in team config |
+| **Leader** | The agent that created the team. Receives teammate messages, approves plans/shutdowns. | First member in config |
+| **Task** | A work item with subject, description, status, owner, and dependencies. | `~/.claude/tasks/{team}/N.json` |
+| **Inbox** | JSON file where an agent receives messages from teammates. | `~/.claude/teams/{name}/inboxes/{agent}.json` |
+| **Message** | A JSON object sent between agents. Can be text or structured (shutdown_request, idle_notification, etc). | Stored in inbox files |
+| **Backend** | How teammates run. Auto-detected: `in-process`, `tmux`, `iterm2`. | Auto-detected based on environment |
+
+---
+
+## Pattern Quick Reference
+
+| Pattern | When to Use | Agents | Dependencies |
+|---------|------------|--------|-------------|
+| [Parallel Specialists](/how-to/patterns/#parallel-specialists) | Multiple independent reviews | 2-5 | None |
+| [Pipeline](/how-to/patterns/#pipeline) | Sequential stages | 3-5 | Linear chain |
+| [Swarm](/how-to/patterns/#swarm) | Many similar tasks | 3-5 | None |
+| [Research + Implementation](/how-to/patterns/#research--implementation) | Learn then build | 2 | Phase gate |
+| [Plan Approval](/how-to/patterns/#plan-approval) | High-risk changes | 1-2 | Approval gate |
+| [Multi-File Refactoring](/how-to/patterns/#multi-file-refactoring) | Cross-file changes | 2-4 | Fan-in |
+| [RLM](/how-to/patterns/#rlm-recursive-language-model) | Files exceeding context | 1 per partition | Fan-out/fan-in |
+
+### Pattern Agent Recommendations
+
+**Parallel Specialists:**
+- Security: `sdlc:security-reviewer`
+- Quality: `feature-dev:code-reviewer`
+- Architecture: `refactor:architect`
+- Simplicity: `code-simplifier:code-simplifier`
+
+**RLM:**
+- Source code: `swarm:rlm-code-analyzer` (Haiku)
+- CSV/TSV data: `swarm:rlm-data-analyzer` (Haiku)
+- JSON/JSONL: `swarm:rlm-json-analyzer` (Haiku)
+- Logs/prose/config: `swarm:rlm-chunk-analyzer` (Haiku)
+- Synthesizer: `swarm:rlm-synthesizer` (Sonnet)
+
+**Do NOT override analyst models.** Leave `model` unset — Haiku is correct for structured analysis.
+
+---
+
+## Message Types
+
+All messaging uses the `SendMessage` tool. Five message types are available:
+
+| Type | Direction | Required Fields | Purpose |
+|------|-----------|----------------|---------|
+| `message` | Any agent to any agent | `recipient`, `content`, `summary` | Direct message to one teammate |
+| `broadcast` | Leader to all teammates | `content`, `summary` | Same message to every teammate (expensive — N messages for N teammates) |
+| `shutdown_request` | Leader to teammate | `recipient`, `content` | Ask a teammate to gracefully exit |
+| `shutdown_response` | Teammate to leader | `request_id`, `approve` | Accept or reject a shutdown request. Optional `content` for rejection reason |
+| `plan_approval_response` | Leader to teammate | `request_id`, `recipient`, `approve` | Approve or reject a teammate's plan. Optional `content` for rejection feedback |
+
+### Auto-Generated Messages
+
+These messages are sent automatically by the system, not by calling `SendMessage`:
+
+| Type | When Sent | Contains |
+|------|-----------|----------|
+| `idle_notification` | Teammate finishes a turn | `completedTaskId`, `completedStatus` |
+| `task_completed` | Teammate marks a task completed | `taskId`, `taskSubject` |
+| `plan_approval_request` | Teammate in plan mode calls ExitPlanMode | `planContent`, `requestId` |
+| `join_request` | Agent requests to join a team | `proposedName`, `capabilities`, `requestId` |
+| `permission_request` | Teammate needs tool approval | `toolName`, `description`, `input`, `permissionSuggestions` |
+
+---
+
+## Task Statuses
+
+| Status | Meaning | Transitions To |
+|--------|---------|---------------|
+| `pending` | Created, not yet started. May be blocked by other tasks. | `in_progress`, `deleted` |
+| `in_progress` | Claimed by an agent and actively being worked on. | `completed`, `deleted` |
+| `completed` | Work is done. Auto-unblocks any tasks that depend on this one. | (terminal) |
+| `deleted` | Permanently removed. Does not unblock dependent tasks. | (terminal) |
+
+**Workflow:** `pending` -> `in_progress` -> `completed`
+
+When a task with `blockedBy` entries has all blockers reach `completed`, it auto-unblocks and becomes available for claiming.
+
+---
+
+## Task Fields
+
+### TaskCreate Parameters
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `subject` | Yes | Brief, actionable title in imperative form (e.g., "Fix authentication bug") |
+| `description` | Yes | Detailed description with context and acceptance criteria |
+| `activeForm` | No | Present continuous form shown in spinner when in_progress (e.g., "Fixing authentication bug") |
+
+All tasks are created with status `pending` and no owner.
+
+### TaskUpdate Parameters
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `taskId` | Yes | ID of the task to update |
+| `status` | No | New status: `pending`, `in_progress`, `completed`, or `deleted` |
+| `owner` | No | Agent name to assign the task to |
+| `subject` | No | New task title |
+| `description` | No | New task description |
+| `activeForm` | No | New spinner text |
+| `addBlockedBy` | No | Array of task IDs that must complete before this task |
+| `addBlocks` | No | Array of task IDs that this task blocks |
+| `metadata` | No | Key-value pairs to merge into task metadata |
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable agent teams feature | `0` (disabled) |
+| `CLAUDE_CODE_SPAWN_BACKEND` | Force a spawn backend | Auto-detected |
+| `CLAUDE_CODE_TEAM_NAME` | Set on spawned teammates | (set by system) |
+| `CLAUDE_CODE_AGENT_ID` | Unique agent identifier | (set by system) |
+| `CLAUDE_CODE_AGENT_NAME` | Human-readable agent name | (set by system) |
+| `CLAUDE_CODE_AGENT_TYPE` | Agent type (e.g., "Explore") | (set by system) |
+| `CLAUDE_CODE_PLAN_MODE_REQUIRED` | Whether agent must plan first | `false` |
+
+### Settings File (`settings.json`)
+
+| Setting | Values | Description |
+|---------|--------|-------------|
+| `teammateMode` | `"auto"`, `"in-process"`, `"tmux"` | How teammates are displayed. `"auto"` uses split panes inside tmux, in-process otherwise |
+
+### CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| `--teammate-mode <mode>` | Force a spawn backend for this session (`in-process`, `tmux`) |
+
+---
+
+## Spawn Backends
+
+| Backend | How It Works | Visibility | Persistence | Speed |
+|---------|-------------|------------|-------------|-------|
+| **in-process** | Same Node.js process as leader | Hidden (background) | Dies with leader | Fastest |
+| **tmux** | Separate terminal in tmux session | Visible in tmux | Survives leader exit | Medium |
+| **iterm2** | Split panes in iTerm2 window | Visible side-by-side | Dies with window | Medium |
+
+Auto-detection priority: tmux session detected -> tmux; iTerm2 with `it2` CLI -> iterm2; tmux available -> tmux (external session); otherwise -> in-process.
+
+---
+
+## RLM Analysis Focus Options
+
+You can steer code analysis by mentioning what you care about:
+
+| Your Goal | What to Say | What Analysts Prioritize |
+|-----------|------------|-------------------------|
+| General review | "review for code quality" | Logic errors, complexity, patterns |
+| Security audit | "audit for security" or "find vulnerabilities" | Injection, auth, secrets, unsafe ops |
+| Architecture | "review the architecture" | Coupling, SOLID, dependency patterns |
+| Performance | "analyze performance" | Algorithmic complexity, N+1, blocking calls |
+
+---
+
+## RLM Data Analyst Output
+
+Data analysts (`swarm:rlm-data-analyzer`) report:
+
+- Frequency distributions per column (e.g., status breakdown, region counts)
+- Outliers and anomalies (e.g., unusually high values, rare categories)
+- Missing data rates per column
+- Correlations between dimensions
+- Temporal patterns if date columns are present
+
+---
+
+## Standard vs JSONL Log Analyzer
+
+| | Standard JSON/JSONL RLM | JSONL Log Analyzer |
+|---|---|---|
+| **Schema discovery** | Manual / implicit | Automated via `jq` |
+| **jq recipes** | User provides or none | Auto-generated from schema |
+| **Field classification** | None | Timestamp, level, error, ID, etc. |
+| **Synthesis guidance** | Generic | Log-specific (temporal, error clustering) |
+| **Best for** | JSON arrays, catalogs, configs | JSONL log files, incident investigation |
+| **Analyst** | `swarm:rlm-json-analyzer` | Same |
+
+---
+
+## RLM Feature Comparison
+
+| Feature | Basic RLM | Content-Aware | Directory | Multi-Type |
+|---------|-----------|--------------|-----------|------------|
+| Content-type detection | No | Yes | Yes | Yes |
+| Semantic chunking | No (line ranges) | Yes (type-specific) | Yes | Yes |
+| Header preservation (CSV) | No | Yes | Yes | Yes |
+| Import injection (code) | No | Yes | Yes | Yes |
+| Schema awareness (JSON) | No | Yes | Yes | Yes |
+| Multiple analyst types | No | No | No | Yes |
+| Small file batching | No | No | Yes | Yes |
+| Two-phase synthesis | No | No | No | Yes |
+| Cross-file correlation | No | No | Limited | Yes |
+| Partition budget | Manual | Auto (per type) | Auto (tiered) | Auto (tiered + data-driven) |
+
+---
+
+## Known Limitations
+
+These are current limitations of the agent teams feature:
+
+1. **No session resumption** — `/resume` doesn't restore in-process teammates
+2. **Task status can lag** — Teammates may forget to mark tasks complete
+3. **One team per session** — Clean up before creating a new team
+4. **No nested teams** — Only the lead can manage the team
+5. **Lead is fixed** — Can't promote or transfer leadership
+6. **Permissions set at spawn** — Can change after, not during spawn
+7. **Split panes need tmux/iTerm2** — Not supported in VS Code terminal, Windows Terminal, or Ghostty
+
+---
+
+## Debugging Commands
+
+```bash
+# Check team config
+cat ~/.claude/teams/{team}/config.json | jq '.members[] | {name, agentType, backendType}'
+
+# Check teammate inboxes
+cat ~/.claude/teams/{team}/inboxes/{agent}.json | jq '.'
+
+# List all teams
+ls ~/.claude/teams/
+
+# Check task states
+cat ~/.claude/tasks/{team}/*.json | jq '{id, subject, status, owner, blockedBy}'
+
+# Watch for new messages
+tail -f ~/.claude/teams/{team}/inboxes/team-lead.json
+
+# Check tmux sessions
+tmux ls
+
+# Kill orphaned session
+tmux kill-session -t <session-name>
+```

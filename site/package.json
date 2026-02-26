@@ -1,0 +1,19 @@
+{
+  "name": "claude-team-orchestration-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "npm run generate && astro build",
+    "preview": "astro preview",
+    "generate": "node scripts/generate-all.mjs",
+    "generate:docs": "node scripts/generate-docs-pages.mjs",
+    "generate:skills": "node scripts/generate-skills-pages.mjs",
+    "check:freshness": "node scripts/check-freshness.mjs"
+  },
+  "dependencies": {
+    "astro": "^5.17.2",
+    "@astrojs/starlight": "^0.37.6",
+    "astro-mermaid": "^1.3.1"
+  }
+}

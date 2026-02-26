@@ -1,0 +1,734 @@
+---
+title: "Content-Aware RLM"
+description: "Design document for content-aware RLM chunking."
+---
+
+**Status:** Proposal
+**Date:** 2026-02-11
+**Scope:** Expansion of `skills/rlm-pattern/SKILL.md` and `agents/rlm-*` to add automatic content-type detection, type-specific chunking strategies, and analyst agent routing.
+
+---
+
+## Problem Statement
+
+The current RLM pattern treats all content uniformly:
+- One partitioning table with manual strategy selection by the Team Lead
+- One analyst agent type (`swarm:rlm-chunk-analyzer`) for all content
+- No awareness of content structure — CSV headers get split, functions get bisected, JSON objects get truncated mid-brace
+
+This produces suboptimal results:
+- **Source code** chunked by line ranges loses function/class boundaries, severing semantic units
+- **CSV data** split by lines can orphan rows from their header, making analysis impossible
+- **JSON** split mid-object produces invalid fragments that confuse analysts
+- **All content** gets the same generic analysis prompt, missing domain-specific patterns (AST structure, statistical distributions, schema shapes)
+
+---
+
+## Design Overview
+
+Add a **content-type detection phase** before chunking, then route through **type-specific partitioning strategies** and **specialized analyst agents**.
+
+```
+┌──────────────┐    ┌──────────────┐    ┌───────────────────┐    ┌─────────────┐
+│  Input File  │───▶│  Detect Type │───▶│  Type-Specific    │───▶│  Route to   │
+│              │    │  (extension  │    │  Partitioning     │    │  Specialist │
+│              │    │   + sniff)   │    │  Strategy         │    │  Analyst    │
+└──────────────┘    └──────────────┘    └───────────────────┘    └─────────────┘
+                                                                       │
+                                                                       ▼
+                                                                ┌─────────────┐
+                                                                │  Synthesize │
+                                                                │  (existing) │
+                                                                └─────────────┘
+```
+
+The fan-out/fan-in structure is preserved — only the chunking logic and analyst selection change.
+
+---
+
+## 1. Content-Type Detection
+
+Detection runs in the Team Lead before chunking. It uses a two-stage approach: fast extension matching, then content sniffing as fallback.
+
+### Stage 1: Extension Mapping
+
+| Extensions | Content Type | Confidence |
+|-----------|-------------|------------|
+| `.py`, `.ts`, `.js`, `.tsx`, `.jsx`, `.rb`, `.go`, `.rs`, `.java`, `.kt`, `.c`, `.cpp`, `.h`, `.hpp`, `.cs`, `.swift`, `.scala`, `.php`, `.lua`, `.zig`, `.ex`, `.exs`, `.hs`, `.ml`, `.sh`, `.bash`, `.zsh` | `source_code` | High |
+| `.csv`, `.tsv` | `structured_data` | High |
+| `.json` | `json` | High |
+| `.jsonl`, `.ndjson` | `jsonl` | High |
+| `.log` | `log` | High |
+| `.md`, `.rst`, `.txt`, `.adoc` | `prose` | Medium |
+| `.xml`, `.html`, `.htm`, `.svg` | `markup` | Medium |
+| `.yaml`, `.yml`, `.toml`, `.ini`, `.conf` | `config` | Medium |
+
+### Stage 2: Content Sniffing (for unknown extensions or `.txt`/`.log`)
+
+When extension alone gives Medium or no confidence, read the first 50 lines and apply heuristics:
+
+| Heuristic | Detected Type | Example Signal |
+|-----------|--------------|----------------|
+| First line matches CSV header pattern (comma/tab-separated tokens, no spaces in delimiters) | `structured_data` | `id,name,email,created_at` |
+| Lines consistently match `TIMESTAMP LEVEL message` pattern | `log` | `2026-02-11 01:30:00 ERROR ...` |
+| First non-whitespace character is `[` or `{` and content is valid JSON | `json` | `{"key": "value", ...}` |
+| Every line is independent valid JSON | `jsonl` | `{"event": "click", ...}\n{"event": "view", ...}` |
+| Lines start with `def `, `function `, `class `, `import `, `#include`, `package ` | `source_code` | `def process_data(df):` |
+| Markdown headings (`# `, `## `), paragraph text, no structured pattern | `prose` | `## Introduction\n\nThis document...` |
+| No pattern matches | `unknown` → fallback to `prose` behavior | — |
+
+### Implementation
+
+The Team Lead executes detection inline — no separate agent needed. The logic is:
+
+```
+1. Map file extension to content_type using Stage 1 table
+2. If confidence < High OR extension is .txt/.log:
+   a. Read first 50 lines of the file
+   b. Apply Stage 2 heuristics in order (first match wins)
+3. If still unknown, default to "prose" (current line-range behavior)
+4. Log detected type: "Detected content type: {type} (via {extension|sniffing})"
+```
+
+**Design rationale — why not a detection agent?** Detection is cheap (one file read, pattern matching) and blocking (must complete before chunking begins). Running it in-process in the Team Lead avoids an unnecessary agent spawn and round-trip.
+
+---
+
+## 2. Updated Partitioning Strategy Table
+
+Replace the current single table in `SKILL.md` with type-specific defaults:
+
+### Source Code
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Function/class/module | Use blank-line + indentation heuristic to detect boundaries |
+| Chunk size | 150–300 lines per chunk | Adjust per density; never split mid-function |
+| Overlap | 0 lines | Not needed — boundaries are semantic |
+| Context injection | Import/require block | Prepend the file's import section (first N lines until first non-import) to every chunk |
+| Partition method | Write chunk files | `chunk-01.py` through `chunk-N.py`, each starting with the shared import block |
+
+**Boundary detection heuristic (no AST parser required):**
+1. Scan for lines at indentation level 0 that start with keywords: `def `, `class `, `function `, `func `, `fn `, `pub fn `, `impl `, `module `, `export `, `const `, `type `, `interface `
+2. These are candidate split points
+3. Group consecutive lines between split points into chunks
+4. If any chunk exceeds 300 lines, split at the next inner boundary (nested function/method)
+5. If no boundaries detected, fall back to 200-line chunks with 20-line overlap
+
+### Structured Data (CSV/TSV)
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Row count | Even splits |
+| Chunk size | 500–1000 rows | Based on column count: fewer columns → more rows per chunk |
+| Overlap | 0 rows | Not needed — rows are independent |
+| Header preservation | Yes | Every chunk file includes the original header row as line 1 |
+| Partition method | Write chunk files | `chunk-01.csv` through `chunk-N.csv`, each starting with the header |
+
+### JSON (single document)
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Top-level array elements | If root is array, split by element count. If root is object, split by top-level keys |
+| Chunk size | 200–500 elements per chunk | Adjust per element size |
+| Overlap | 0 | Objects are self-contained |
+| Partition method | Write chunk files | Each chunk is a valid JSON array fragment: `[element1, element2, ...]` |
+| Schema injection | Yes | Include a schema summary (field names + types from first 5 elements) in analyst prompt |
+
+### JSONL / NDJSON
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Line count | Each line is one JSON object |
+| Chunk size | 500–1000 lines | Adjust per line size |
+| Overlap | 0 | Lines are independent |
+| Partition method | Write chunk files | Each chunk is valid JSONL |
+| Schema injection | Yes | Include field list from first object in analyst prompt |
+
+### Log Files
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Line ranges | Sequential |
+| Chunk size | 200 lines | Configurable |
+| Overlap | 20 lines | Prevents splitting multi-line stack traces |
+| Chunk index | Yes | Each analyst receives "chunk M of N" for temporal ordering |
+| Partition method | Read offset/limit | No file writes needed — analysts read in-place |
+
+### Prose / Markdown / Docs
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Section headings | Split at `#`/`##` boundaries when possible |
+| Chunk size | 250 lines, 25 overlap | Fallback when no heading structure |
+| Overlap | 25 lines | Preserves cross-boundary context |
+| Chunk index | Yes | "chunk M of N" for reading order |
+| Partition method | Read offset/limit | No file writes needed |
+
+### Config / Markup / Unknown
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| Chunk boundary | Line ranges | Current default behavior |
+| Chunk size | 200 lines, 20 overlap | Same as current |
+| Partition method | Read offset/limit | Same as current |
+
+---
+
+## 3. Agent Routing Rules
+
+### The Routing Decision
+
+The Team Lead makes two decisions:
+1. **Content type** (detected automatically, per Section 1)
+2. **Analysis goal** (from the user's query — what are they asking?)
+
+These two axes produce the agent selection:
+
+### Routing Matrix
+
+| Content Type | Analysis Goal: General | Analysis Goal: Security | Analysis Goal: Architecture | Analysis Goal: Data/Stats |
+|-------------|----------------------|------------------------|---------------------------|--------------------------|
+| **source_code** | `swarm:rlm-code-analyzer` | `swarm:rlm-code-analyzer` with security prompt | `swarm:rlm-code-analyzer` with architecture prompt | N/A |
+| **structured_data** | `swarm:rlm-data-analyzer` | N/A | N/A | `swarm:rlm-data-analyzer` |
+| **json** / **jsonl** | `swarm:rlm-json-analyzer` | N/A | N/A | `swarm:rlm-json-analyzer` |
+| **log** | `swarm:rlm-chunk-analyzer` | `swarm:rlm-chunk-analyzer` | N/A | `swarm:rlm-chunk-analyzer` |
+| **prose** | `swarm:rlm-chunk-analyzer` | N/A | N/A | N/A |
+| **config** / **markup** / **unknown** | `swarm:rlm-chunk-analyzer` | `swarm:rlm-chunk-analyzer` | N/A | N/A |
+
+**"N/A" cells** fall back to the General column for that content type.
+
+### Why NOT Route to Existing Plugin Agents?
+
+Considered routing source code chunks to `feature-dev:code-reviewer`, `sdlc:security-reviewer`, or `refactor:architect`. Rejected for these reasons:
+
+1. **Protocol mismatch.** Existing plugin agents expect whole-file or whole-project context. They don't understand the RLM chunk protocol: line ranges as input, compact structured JSON as output, 4000-character output limit. They would produce verbose prose reports that overflow the Team Lead's context during collection.
+
+2. **Tool surface.** `sdlc:security-reviewer` has Bash access. `refactor:architect` has WebFetch. Chunk analysts should be read-only for safety and speed — they're spawned 5-10x in parallel on untrusted content.
+
+3. **Model mismatch.** RLM chunk analyzers use Haiku for cost/speed. Plugin agents inherit the parent model (often Opus/Sonnet) which is 10-50x more expensive per chunk.
+
+4. **Output format.** The synthesizer expects a specific JSON schema (`findings[]`, `metadata.content_type`, `metadata.key_topics`). Existing agents produce free-form markdown.
+
+**The right approach:** Create new content-specialized chunk analyzers within the swarm plugin that share the RLM protocol (Haiku, read-only, JSON output, compact) but carry domain-specific analysis instructions.
+
+---
+
+## 4. New Custom Agents
+
+Three new agents in `agents/`, all following the existing `rlm-chunk-analyzer` protocol.
+
+### 4a. `agents/rlm-code-analyzer.md`
+
+**Purpose:** Analyze source code chunks with awareness of code structure.
+
+```yaml
+name: rlm-code-analyzer
+description: Code-aware chunk analyzer for RLM workflow. Analyzes source code partitions with understanding of functions, classes, imports, and code patterns. Returns structured JSON findings.
+model: haiku
+tools:
+  - Read
+  - Grep
+  - Glob
+color: blue
+```
+
+**Expected prompt parameters** (passed via Task tool `prompt` string by Team Lead):
+- **Query**: The analysis question or task
+- **File path**: Absolute path to the chunk file
+- **Language** (optional): Programming language of the source code
+- **Analysis focus** (optional): `general`, `security`, `architecture`, or `performance`
+
+The agent's system prompt (markdown body) instructs it to parse these from the prompt it receives.
+
+**Key differences from generic chunk-analyzer:**
+- Understands function/class/module boundaries
+- Reports findings with structural context: `"scope": "function:process_data"`
+- Finding types include: `vulnerability`, `complexity`, `dependency`, `dead_code`, `api_surface`, `pattern`, `antipattern`
+- Analysis focus in the prompt steers the analysis without needing separate agents per goal
+- Imports block awareness: notes when a chunk references symbols defined elsewhere
+
+**Output schema extension:**
+```json
+{
+  "findings": [{
+    "type": "vulnerability|complexity|dependency|...",
+    "scope": "function:name|class:Name|module",
+    "summary": "...",
+    "evidence": "...",
+    "line": 42,
+    "severity": "high|medium|low"
+  }],
+  "metadata": {
+    "content_type": "source_code",
+    "language": "python",
+    "structures": ["class:DataProcessor", "function:process_data", "function:validate"],
+    "imports": ["pandas", "numpy", "logging"],
+    "key_topics": ["data processing", "validation"]
+  }
+}
+```
+
+### 4b. `agents/rlm-data-analyzer.md`
+
+**Purpose:** Analyze CSV/TSV data chunks with statistical awareness.
+
+```yaml
+name: rlm-data-analyzer
+description: Data-aware chunk analyzer for RLM workflow. Analyzes structured data partitions (CSV/TSV) reporting frequency counts, distributions, outliers, and patterns. Returns structured JSON findings.
+model: haiku
+tools:
+  - Read
+  - Grep
+  - Glob
+color: yellow
+```
+
+**Expected prompt parameters** (passed via Task tool `prompt` string by Team Lead):
+- **Query**: The analysis question or task
+- **File path**: Absolute path to the chunk CSV file (header included)
+- **Chunk index** (optional): Chunk number (e.g., "3 of 10")
+
+**Key differences from generic chunk-analyzer:**
+- Understands tabular structure: column names, data types, value distributions
+- Reports findings with column context: `"column": "status"`, `"distribution": {"active": 340, "inactive": 60}`
+- Finding types include: `frequency`, `distribution`, `outlier`, `missing_data`, `correlation`, `pattern`, `anomaly`
+- Produces aggregatable summaries: counts, min/max, unique values per column
+
+**Output schema extension:**
+```json
+{
+  "findings": [{
+    "type": "distribution",
+    "column": "status",
+    "summary": "Status field heavily skewed toward 'active'",
+    "distribution": {"active": 340, "inactive": 60, "pending": 12},
+    "total_rows": 412
+  }],
+  "metadata": {
+    "content_type": "structured_data",
+    "columns": ["id", "name", "status", "created_at"],
+    "row_count": 412,
+    "key_topics": ["user data", "status distribution"]
+  }
+}
+```
+
+### 4c. `agents/rlm-json-analyzer.md`
+
+**Purpose:** Analyze JSON/JSONL chunks with schema awareness.
+
+```yaml
+name: rlm-json-analyzer
+description: JSON-aware chunk analyzer for RLM workflow. Analyzes JSON or JSONL partitions reporting schema patterns, field distributions, structural anomalies, and data characteristics. Returns structured JSON findings.
+model: haiku
+tools:
+  - Read
+  - Grep
+  - Glob
+color: magenta
+```
+
+**Expected prompt parameters** (passed via Task tool `prompt` string by Team Lead):
+- **Query**: The analysis question or task
+- **File path**: Absolute path to the chunk file
+- **Format** (optional): `json` or `jsonl`
+- **Schema hint** (optional): Field names and types from the first few objects (provided by team lead)
+
+**Key differences from generic chunk-analyzer:**
+- Understands JSON structure: objects, arrays, nesting depth, field consistency
+- Reports findings with path context: `"path": "$.events[*].metadata.source"`
+- Finding types include: `schema_variation`, `field_distribution`, `nesting`, `null_frequency`, `type_inconsistency`, `outlier`, `pattern`
+- Schema drift detection: notes when objects within the chunk have different shapes
+
+**Output schema extension:**
+```json
+{
+  "findings": [{
+    "type": "schema_variation",
+    "path": "$.events[*].metadata",
+    "summary": "15% of events missing metadata.source field",
+    "evidence": "68/450 objects lack 'source' key in metadata",
+    "severity": "medium"
+  }],
+  "metadata": {
+    "content_type": "json",
+    "format": "jsonl",
+    "object_count": 450,
+    "schema_fields": ["id", "event", "timestamp", "metadata.source", "metadata.user_id"],
+    "key_topics": ["event data", "schema consistency"]
+  }
+}
+```
+
+### No changes to `rlm-synthesizer.md`
+
+The synthesizer already handles heterogeneous findings via its aggregation logic. The new finding types (`vulnerability`, `distribution`, `schema_variation`) will flow through naturally — the synthesizer's job is to merge, deduplicate, and narrate, regardless of finding type.
+
+One addition: update the synthesizer prompt to mention it may receive findings from different analyzer types and should note the content type in its synthesis.
+
+### Agent Summary
+
+| Agent | Status | Model | Content Types |
+|-------|--------|-------|--------------|
+| `swarm:rlm-chunk-analyzer` | Existing (unchanged) | Haiku | log, prose, config, markup, unknown |
+| `swarm:rlm-code-analyzer` | **New** | Haiku | source_code |
+| `swarm:rlm-data-analyzer` | **New** | Haiku | structured_data |
+| `swarm:rlm-json-analyzer` | **New** | Haiku | json, jsonl |
+| `swarm:rlm-synthesizer` | Existing (minor update) | Sonnet | All (aggregation) |
+
+---
+
+## 5. Changes to Existing Files
+
+### 5a. `skills/rlm-pattern/SKILL.md`
+
+**Additions:**
+
+1. **New section: "Content-Type Detection"** — Insert after "When to Use", before "Partitioning Strategies". Documents the two-stage detection logic. Keeps it concise — the Team Lead follows this, not a separate agent.
+
+2. **Replace "Partitioning Strategies" section** — Swap the single table for the type-specific tables from Section 2 of this document. Keep the current table as a "Quick Reference" at the top, then expand with per-type detail below.
+
+3. **New section: "Agent Routing"** — Insert after "Partitioning Strategies", before "Team Composition". Contains the routing matrix from Section 3. Clearly states: "The Team Lead selects the analyst agent based on detected content type."
+
+4. **Update "Team Composition" table** — Add the three new agent types:
+
+   ```
+   | Role | Count | Agent Type | Purpose |
+   |------|-------|-----------|---------|
+   | Team Lead | 1 | You | Detect type, partition, spawn, synthesize |
+   | Code Analyst | 1 per partition | swarm:rlm-code-analyzer | Source code chunks |
+   | Data Analyst | 1 per partition | swarm:rlm-data-analyzer | CSV/TSV data chunks |
+   | JSON Analyst | 1 per partition | swarm:rlm-json-analyzer | JSON/JSONL chunks |
+   | General Analyst | 1 per partition | swarm:rlm-chunk-analyzer | Logs, prose, other |
+   | Synthesizer | 0-1 | swarm:rlm-synthesizer | Combine all reports |
+   ```
+
+5. **Update "Agent Types" table** — Add new agents with model and tools.
+
+6. **Update "Comparison with rlm-rs Plugin" table** — Add row: "Content-aware chunking | Yes (5 content types) | No (line-range only)".
+
+**Removals:** None. All current content remains valid; it just becomes the "fallback/unknown" path.
+
+### 5b. `agents/rlm-chunk-analyzer.md`
+
+**Updates:**
+- **Remove invalid `arguments` frontmatter field.** Claude Code agent definitions do not support `arguments`. The existing `arguments` block and `{{template_var}}` references in the markdown body must be replaced. Instead, the system prompt (markdown body) should describe the expected prompt format in plain language — e.g., "You will receive a prompt containing: the analysis query, a file path, and a line range (start_line and end_line)."
+- Add a note to the Context section: "You are the general-purpose analyzer. For source code, structured data, or JSON content, specialized analyzers handle those types. You handle: log files, prose/documentation, configuration files, markup, and any content type not covered by a specialist."
+
+### 5c. `agents/rlm-synthesizer.md`
+
+**Updates:**
+- **Remove invalid `arguments` frontmatter field** and `{{template_var}}` references, same as 5b. Describe expected prompt format in the markdown body instead.
+- Add to the Aggregation Rules: "Findings may arrive from different analyzer types (code, data, JSON, general). Note the content_type in metadata when contextualizing findings. Adapt terminology to match: code findings use severity, data findings use distributions, JSON findings use schema paths."
+
+### 5d. `skills/agent-types/SKILL.md`
+
+**Add entries to the Agent Type Selection Guide table:**
+
+```
+| Source code chunk analysis | swarm:rlm-code-analyzer | Code-aware, structured findings |
+| Data/CSV chunk analysis | swarm:rlm-data-analyzer | Statistical, distribution-aware |
+| JSON chunk analysis | swarm:rlm-json-analyzer | Schema-aware, structural patterns |
+```
+
+**Add to the RLM Agents section:**
+
+```javascript
+// Source code analysis (code-aware boundaries)
+Task({
+  subagent_type: "swarm:rlm-code-analyzer",
+  description: "Analyze code chunk",
+  prompt: "Read /path/to/chunk-01.py and analyze for security vulnerabilities."
+})
+
+// CSV data analysis (header-preserving chunks)
+Task({
+  subagent_type: "swarm:rlm-data-analyzer",
+  description: "Analyze data chunk",
+  prompt: "Read /path/to/chunk-03.csv and report distributions and outliers."
+})
+
+// JSON analysis (schema-aware chunks)
+Task({
+  subagent_type: "swarm:rlm-json-analyzer",
+  description: "Analyze JSON chunk",
+  prompt: "Read /path/to/chunk-02.jsonl and report schema patterns."
+})
+```
+
+---
+
+## 6. Pipeline Examples
+
+### Example A: Python Source File (2800 lines)
+
+**Input:** `/project/src/data_pipeline.py` (2800 lines)
+**Query:** "Review this module for security issues and code quality"
+
+**Step 1 — Detection:**
+- Extension `.py` → `source_code` (High confidence)
+- Language: `python`
+
+**Step 2 — Partitioning:**
+- Team Lead reads first 30 lines to extract import block (lines 1-28: `import os`, `import subprocess`, `from sqlalchemy import ...`, etc.)
+- Scans for top-level boundaries: finds 4 classes and 6 standalone functions
+- Creates 10 chunk files in `/tmp/rlm-chunks/`:
+  - `chunk-01.py`: import block + `class DataLoader` (lines 1-310)
+  - `chunk-02.py`: import block + `class DataTransformer` (lines 1-28 + 311-580)
+  - `chunk-03.py`: import block + `class DataValidator` (lines 1-28 + 581-820)
+  - ...etc
+- Each chunk file begins with the shared import block for dependency awareness
+
+**Step 3 — Team Setup and Analyst Spawning:**
+```javascript
+// Create team and tasks
+TeamCreate({ team_name: "rlm-code-review", description: "Security review of data_pipeline.py" })
+for (const chunk of chunks) {
+  TaskCreate({
+    subject: `Analyze chunk ${chunk.index} of ${chunks.length}`,
+    description: `Query: Review for security issues and code quality\nFile: ${chunk.path}\nLanguage: python\nAnalysis focus: security`,
+    activeForm: `Analyzing chunk ${chunk.index}...`
+  })
+}
+
+// Spawn 1 analyst per partition (fresh context each, staged in batches of ~15)
+for (let i = 0; i < chunks.length; i++) {
+  Task({
+    team_name: "rlm-code-review",
+    name: `analyst-${i + 1}`,
+    subagent_type: "swarm:rlm-code-analyzer",
+    prompt: `You are analyst-${i + 1}. Analyze chunk ${i + 1} of ${chunks.length}.
+Query: Review for security issues and code quality
+File: ${chunks[i].path}
+Write JSON findings to task description via TaskUpdate, send one-line summary to team-lead.`,
+    run_in_background: true
+  })
+}
+```
+
+**Step 4 — Analyst Reports (example from chunk-01):**
+```json
+{
+  "file_path": "/tmp/rlm-chunks/chunk-01.py",
+  "relevant": true,
+  "findings": [
+    {
+      "type": "vulnerability",
+      "scope": "function:DataLoader.load_from_url",
+      "summary": "Unsanitized URL passed to subprocess.run",
+      "evidence": "subprocess.run(['curl', url], shell=False)",
+      "line": 145,
+      "severity": "high"
+    },
+    {
+      "type": "vulnerability",
+      "scope": "function:DataLoader.query_db",
+      "summary": "SQL string concatenation instead of parameterized query",
+      "evidence": "f\"SELECT * FROM {table} WHERE id = {user_id}\"",
+      "line": 203,
+      "severity": "high"
+    }
+  ],
+  "metadata": {
+    "content_type": "source_code",
+    "language": "python",
+    "structures": ["class:DataLoader", "function:load_from_url", "function:query_db"],
+    "imports": ["os", "subprocess", "sqlalchemy"],
+    "key_topics": ["data loading", "database", "external URLs"]
+  }
+}
+```
+
+**Step 5 — Synthesis:**
+Synthesizer receives 10 analyst reports, merges findings by severity, and produces a security audit with actionable recommendations referencing original line numbers.
+
+---
+
+### Example B: CSV Data Export (45,000 rows)
+
+**Input:** `/data/exports/customers-2025.csv` (45,000 rows, 12 columns)
+**Query:** "Analyze customer distribution by region and identify anomalies"
+
+**Step 1 — Detection:**
+- Extension `.csv` → `structured_data` (High confidence)
+
+**Step 2 — Partitioning:**
+- Team Lead reads line 1 to extract header: `id,name,email,region,plan,mrr,signup_date,last_login,status,industry,employees,country`
+- 45,000 rows ÷ 1,000 rows/chunk = 45 chunks (too many)
+- Adjust to 5,000 rows/chunk = 9 chunks (within the 5-10 sweet spot)
+- Writes 9 chunk files to `/tmp/rlm-chunks/`:
+  - `chunk-01.csv`: header + rows 2-5001
+  - `chunk-02.csv`: header + rows 5002-10001
+  - ...etc
+
+**Step 3 — Team Setup and Analyst Spawning:**
+```javascript
+TeamCreate({ team_name: "rlm-csv-analysis", description: "Customer data analysis" })
+// Create 9 tasks (one per chunk) then spawn 3 analyst teammates
+for (const chunk of chunks) {
+  TaskCreate({
+    subject: `Analyze chunk ${chunk.index} of 9`,
+    description: `Query: Analyze customer distribution by region and identify anomalies\nFile: ${chunk.path}\nKey columns: region, plan, mrr, status, industry, country`,
+    activeForm: `Analyzing chunk ${chunk.index}...`
+  })
+}
+
+const prompt = `You are an RLM data analyst on team "rlm-csv-analysis".
+Claim tasks from TaskList, read chunk CSVs, report distributions and anomalies.
+Send JSON findings to team-lead via SendMessage. Repeat until no tasks remain.`
+
+Task({ team_name: "rlm-csv-analysis", name: "analyst-1", subagent_type: "swarm:rlm-data-analyzer", prompt, run_in_background: true })
+Task({ team_name: "rlm-csv-analysis", name: "analyst-2", subagent_type: "swarm:rlm-data-analyzer", prompt, run_in_background: true })
+Task({ team_name: "rlm-csv-analysis", name: "analyst-3", subagent_type: "swarm:rlm-data-analyzer", prompt, run_in_background: true })
+```
+
+**Step 4 — Analyst Reports (example from chunk-04):**
+```json
+{
+  "file_path": "/tmp/rlm-chunks/chunk-04.csv",
+  "relevant": true,
+  "findings": [
+    {
+      "type": "distribution",
+      "column": "region",
+      "summary": "NA region dominates this chunk",
+      "distribution": {"NA": 3200, "EMEA": 1100, "APAC": 580, "LATAM": 120},
+      "total_rows": 5000
+    },
+    {
+      "type": "outlier",
+      "column": "mrr",
+      "summary": "3 customers with MRR > $50,000 (99.9th percentile)",
+      "evidence": "rows 17842, 18201, 19003: mrr values $52,400, $78,000, $61,500",
+      "severity": "low"
+    },
+    {
+      "type": "missing_data",
+      "column": "last_login",
+      "summary": "8% of rows have empty last_login",
+      "evidence": "401 of 5000 rows",
+      "severity": "medium"
+    }
+  ],
+  "metadata": {
+    "content_type": "structured_data",
+    "columns": ["id","name","email","region","plan","mrr","signup_date","last_login","status","industry","employees","country"],
+    "row_count": 5000,
+    "key_topics": ["customer data", "regional distribution", "MRR"]
+  }
+}
+```
+
+**Step 5 — Synthesis:**
+Synthesizer aggregates distribution counts across all 9 chunks (summing region counts, merging outlier lists), produces overall percentages, and identifies the cross-chunk anomaly: `last_login` missing data rate increases in later chunks (more recent signups haven't logged in yet).
+
+---
+
+### Example C: Application Log File (50,000 lines)
+
+**Input:** `/var/log/app/api-server.log` (50,000 lines)
+**Query:** "What errors occurred and are there any patterns in the failures?"
+
+**Step 1 — Detection:**
+- Extension `.log` → `log` (High confidence)
+
+**Step 2 — Partitioning:**
+- Log content → use line ranges with overlap
+- 50,000 lines ÷ 200 lines/chunk = 250 chunks (far too many)
+- Increase to 5,000 lines/chunk with 50-line overlap = 10 chunks
+- No file writes needed — analysts use Read with offset/limit
+
+**Step 3 — Team Setup and Analyst Spawning:**
+```javascript
+TeamCreate({ team_name: "rlm-log-analysis", description: "API server log analysis" })
+// Create 10 tasks (one per chunk)
+for (const chunk of chunks) {
+  TaskCreate({
+    subject: `Analyze chunk ${chunk.index} of 10`,
+    description: `Query: What errors occurred and are there any patterns?\nFile: /var/log/app/api-server.log\nStart line: ${chunk.start}\nEnd line: ${chunk.end}\nLines are in chronological order.`,
+    activeForm: `Analyzing chunk ${chunk.index}...`
+  })
+}
+
+// Spawn 3 analyst teammates (they self-balance across 10 tasks)
+const prompt = `You are an RLM chunk analyst on team "rlm-log-analysis".
+Claim tasks from TaskList, read log chunks with Read offset/limit, find error patterns.
+Send JSON findings to team-lead via SendMessage. Repeat until no tasks remain.`
+
+Task({ team_name: "rlm-log-analysis", name: "analyst-1", subagent_type: "swarm:rlm-chunk-analyzer", prompt, run_in_background: true })
+Task({ team_name: "rlm-log-analysis", name: "analyst-2", subagent_type: "swarm:rlm-chunk-analyzer", prompt, run_in_background: true })
+Task({ team_name: "rlm-log-analysis", name: "analyst-3", subagent_type: "swarm:rlm-chunk-analyzer", prompt, run_in_background: true })
+```
+
+**Step 4 — Analyst Reports (same format as current):**
+The existing `rlm-chunk-analyzer` handles this exactly as it does today. No change.
+
+**Step 5 — Synthesis:**
+Synthesizer receives findings with chunk indices, reconstructs chronological sequence, identifies temporal clustering of errors.
+
+---
+
+## 7. Design Decisions & Tradeoffs
+
+### Decision: New agents vs. parameterized single agent
+
+**Chosen:** Three new agents + keep existing one.
+**Alternative:** Single `rlm-chunk-analyzer` with content-type instructions embedded in the prompt that switch analysis behavior.
+
+**Rationale:** Separate agents keep each prompt focused and under token limits. A combined agent prompt covering code, data, JSON, and general analysis would be ~3x longer, wasting Haiku context on irrelevant instructions. Separate agents also allow independent iteration — improving the code analyzer doesn't risk regressing the data analyzer.
+
+### Decision: Team Lead does detection, not a detection agent
+
+**Chosen:** Inline detection in Team Lead.
+**Alternative:** Spawn a `swarm:rlm-content-detector` agent.
+
+**Rationale:** Detection is O(1) — read extension, optionally read 50 lines. Not worth an agent spawn. The Team Lead already reads the file to plan partitioning; detection piggybacks on that read.
+
+### Decision: Chunk files vs. Read offset/limit
+
+**Chosen:** Chunk files for code/CSV/JSON (structural integrity); offset/limit for logs/prose (simpler).
+**Rationale:** Code chunks need import prepending. CSV chunks need header prepending. JSON chunks need valid JSON. These require writing new files. Logs and prose are line-sequential and work fine with offset/limit.
+
+### Decision: No routing to existing plugin agents
+
+**Chosen:** Keep all RLM analysts within the swarm plugin namespace.
+**Rationale:** See Section 3 — protocol mismatch, tool surface, model cost, output format. The RLM protocol is specific enough to warrant dedicated agents rather than adapting external ones.
+
+### Decision: Analysis goal as prompt variation, not agent selection
+
+**Chosen:** One code analyzer where the Team Lead includes the analysis focus (security, architecture, performance, general) in the prompt text, not separate `rlm-security-code-analyzer` / `rlm-architecture-code-analyzer` agents.
+**Rationale:** The structural analysis is the same regardless of goal — the goal only changes what findings to prioritize. One agent with prompt variation is simpler than three near-identical agents. The data and JSON analyzers don't need this variation since their analysis is inherently goal-agnostic (report distributions and patterns regardless).
+
+### Decision: Parameters via prompt text, not agent `arguments`
+
+**Chosen:** All parameters (query, file path, language, chunk index, etc.) are passed as structured text in the Task tool's `prompt` string. The agent's system prompt (markdown body) documents the expected prompt format.
+**Alternative considered:** Using an `arguments` frontmatter field with template variables.
+**Rationale:** Claude Code's agent definition format does not support an `arguments` field. The supported frontmatter fields are: `name`, `description`, `tools`, `disallowedTools`, `model`, `permissionMode`, `maxTurns`, `skills`, `mcpServers`, `hooks`, `memory`, and `color`. Parameters must be passed via the prompt. This is also how all built-in and plugin agent types work — the Task tool's `prompt` is the sole input channel.
+
+**Note:** The existing `rlm-chunk-analyzer.md` and `rlm-synthesizer.md` agents currently use an invalid `arguments` frontmatter field and `{{template_var}}` syntax. These must be corrected as part of this work (see Section 5b, 5c).
+
+---
+
+## 8. File Change Summary
+
+| File | Action | Scope |
+|------|--------|-------|
+| `agents/rlm-code-analyzer.md` | **Create** | ~130 lines, new agent definition |
+| `agents/rlm-data-analyzer.md` | **Create** | ~120 lines, new agent definition |
+| `agents/rlm-json-analyzer.md` | **Create** | ~120 lines, new agent definition |
+| `agents/rlm-chunk-analyzer.md` | **Edit** | Remove invalid `arguments` frontmatter, replace `{{template_var}}` refs with prompt-format docs, add role scope note |
+| `agents/rlm-synthesizer.md` | **Edit** | Remove invalid `arguments` frontmatter, replace `{{template_var}}` refs with prompt-format docs, add heterogeneous findings note |
+| `skills/rlm-pattern/SKILL.md` | **Edit** | Add ~120 lines: detection, routing, updated tables |
+| `skills/agent-types/SKILL.md` | **Edit** | Add 3 table rows + 3 code examples (~25 lines) |
+
+**No new skills, no new hooks, no new MCP servers, no new dependencies.**
+
+---
+
+## 9. Future Considerations (Out of Scope)
+
+- **AST-based partitioning** — Using tree-sitter or language-specific parsers for exact function boundaries. Current heuristic approach is good enough for 90% of cases without adding binary dependencies.
+- **Streaming detection** — For very large files where reading 50 lines for sniffing is cheap but the partitioning scan is expensive. Not needed yet.
+- **Multi-file RLM** — Analyzing a directory of mixed-type files in one RLM session, with per-file type detection. **Addressed in [Multi-File Directory RLM Design](/design/multi-file-rlm/).**
+- **Custom type registrations** — Letting users define their own content types and routing rules via configuration. Wait for user demand.

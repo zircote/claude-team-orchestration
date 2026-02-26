@@ -1,0 +1,77 @@
+{
+  "outputDir": "src/content/docs",
+  "pages": [
+    {
+      "source": "docs/getting-started.md",
+      "output": "getting-started/getting-started.mdx",
+      "title": "Getting Started",
+      "description": "End-to-end walkthrough from installation to your first successful team run."
+    },
+    {
+      "source": "docs/patterns.md",
+      "output": "how-to/patterns.mdx",
+      "title": "Orchestration Patterns",
+      "description": "Seven proven patterns for structuring agent teams."
+    },
+    {
+      "source": "docs/rlm-examples.md",
+      "output": "how-to/rlm-examples.mdx",
+      "title": "RLM Pattern Examples",
+      "description": "Practical example prompts for every RLM mode."
+    },
+    {
+      "source": "docs/RLM-Prompt-Example.md",
+      "output": "how-to/rlm-prompt-example.mdx",
+      "title": "RLM Prompt Example",
+      "description": "Real-world RLM prompt for analyzing a Jira CSV export."
+    },
+    {
+      "source": "docs/troubleshooting.md",
+      "output": "how-to/troubleshooting.mdx",
+      "title": "Troubleshooting",
+      "description": "Common failures and fixes for agent teams."
+    },
+    {
+      "source": "docs/concepts.md",
+      "output": "concepts/concepts.mdx",
+      "title": "Concepts",
+      "description": "How the swarm orchestration system works."
+    },
+    {
+      "source": "docs/agent-types.md",
+      "output": "reference/agent-types.mdx",
+      "title": "Agent Types",
+      "description": "Which agents are available and when to use each."
+    },
+    {
+      "source": "docs/reference.md",
+      "output": "reference/reference.mdx",
+      "title": "Reference",
+      "description": "Consolidated lookup tables, configuration options, and API reference."
+    },
+    {
+      "source": "docs/design/content-aware-rlm.md",
+      "output": "design/content-aware-rlm.mdx",
+      "title": "Content-Aware RLM",
+      "description": "Design document for content-aware RLM chunking."
+    },
+    {
+      "source": "docs/design/multi-file-rlm.md",
+      "output": "design/multi-file-rlm.mdx",
+      "title": "Multi-File RLM",
+      "description": "Design document for multi-file directory RLM analysis."
+    },
+    {
+      "source": "docs/proposals/maker-consensus-pattern.md",
+      "output": "design/maker-consensus-pattern.mdx",
+      "title": "Maker Consensus Pattern",
+      "description": "Proposal for redundant consensus orchestration pattern."
+    },
+    {
+      "source": "CHANGELOG.md",
+      "output": "changelog.mdx",
+      "title": "Changelog",
+      "description": "All notable changes to the swarm plugin."
+    }
+  ]
+}

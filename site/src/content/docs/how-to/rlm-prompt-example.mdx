@@ -1,0 +1,30 @@
+---
+title: "RLM Prompt Example"
+description: "Real-world RLM prompt for analyzing a Jira CSV export."
+---
+
+Analyze the CSI (Customer Technical Support) Jira export at `Jira-2.csv.gz` (~709K rows, gzipped CSV) to identify recurring error patterns, top root causes, and systemic issues.
+
+  Use the RLM pattern: partition the data across analyst agents, analyze in parallel, synthesize.
+
+  &gt; **Note:** The RLM pattern now auto-detects content types. For this CSV file, it will detect `structured_data` and route to `swarm:rlm-data-analyzer` agents with header-preserving chunks. See [swarm:rlm-pattern](/skills/rlm-pattern/) for content-type detection and routing details.
+
+  1. Team Lead: Decompress and assess the dataset. Determine column structure and row count. Partition into 8-10 roughly equal CSV chunks (preserving the header row in each). Use Grep to scout for high-density error regions
+   — prioritize partitions with the most incident volume.
+
+  2. Each of 8-10 Analyst agents: Read your assigned partition. For each chunk, report:
+     - Top issue types and categories ranked by frequency
+     - Recurring error patterns in summary/description fields (common phrases, failure signatures, repeated symptoms)
+     - Component and product area breakdown
+     - Priority and severity distributions
+     - Resolution time statistics (min, median, p90, max) if resolution dates are available
+     - Escalation and reassignment rates
+     - Any outliers or anomalies worth highlighting
+
+  3. Team Lead: Collect all analyst reports and synthesize into a consolidated analysis:
+     - **Executive summary** — total volume, date range, overall health assessment
+     - **Top 10 root causes** ranked by frequency and impact, with representative ticket examples
+     - **Systemic issues** — recurring patterns that indicate process, tooling, or architectural problems
+     - **Temporal trends** — month-over-month or quarter-over-quarter changes in volume, categories, or severity
+     - **Component hotspots** — which products, services, or modules generate the most support load
+     - **Recommendations** — prioritized action items to reduce ticket volume, grouped by effort level (quick wins vs. structural fixes)

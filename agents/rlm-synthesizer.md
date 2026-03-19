@@ -2,12 +2,12 @@
 name: rlm-synthesizer
 description: Result aggregation agent for RLM workflow. Use this agent to synthesize findings from multiple chunk analyses into a coherent, comprehensive answer.
 model: sonnet
+color: green
 tools:
   - Read
   - SendMessage
   - TaskGet
   - TaskUpdate
-color: green
 ---
 
 # RLM Synthesizer Agent

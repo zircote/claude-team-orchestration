@@ -2,6 +2,7 @@
 name: rlm-data-analyzer
 description: Data-aware chunk analyzer for RLM workflow. Analyzes structured data partitions (CSV/TSV) reporting frequency counts, distributions, outliers, and patterns. Returns structured JSON findings.
 model: haiku
+color: yellow
 tools:
   - Read
   - Grep
@@ -10,7 +11,6 @@ tools:
   - TaskList
   - TaskGet
   - TaskUpdate
-color: yellow
 ---
 
 # RLM Data Analyzer Agent

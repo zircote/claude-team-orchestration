@@ -125,8 +125,8 @@ See [Team Management](/skills/team-management/) for the full shutdown procedure.
 
 ```javascript
 // 1. Request shutdown for all teammates
-SendMessage({ type: "shutdown_request", recipient: "worker-1", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "worker-2", content: "Done" })
+SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "worker-2", message: { type: "shutdown_request", reason: "Done" } })
 
 // 2. Wait for shutdown approvals
 

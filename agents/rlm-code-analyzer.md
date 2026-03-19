@@ -2,6 +2,7 @@
 name: rlm-code-analyzer
 description: Code-aware chunk analyzer for RLM workflow. Analyzes source code partitions with understanding of functions, classes, imports, and code patterns. Returns structured JSON findings.
 model: haiku
+color: blue
 tools:
   - Read
   - Grep
@@ -10,7 +11,6 @@ tools:
   - TaskList
   - TaskGet
   - TaskUpdate
-color: blue
 ---
 
 # RLM Code Analyzer Agent

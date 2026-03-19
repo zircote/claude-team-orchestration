@@ -117,6 +117,22 @@ All tasks are created with status `pending` and no owner.
 | `addBlocks` | No | Array of task IDs that this task blocks |
 | `metadata` | No | Key-value pairs to merge into task metadata |
 
+### Task Tool Spawn Parameters
+
+Parameters for spawning subagents and teammates via the `Task` tool:
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `subagent_type` | Yes | Agent type to spawn (e.g., `"general-purpose"`, `"Explore"`, `"sdlc:security-reviewer"`) |
+| `prompt` | Yes | Instructions for the agent |
+| `description` | No | Short label shown in the UI |
+| `team_name` | No | Join this team as a teammate (requires `name`) |
+| `name` | No | Teammate's display name within the team |
+| `model` | No | Override model: `"haiku"`, `"sonnet"`, `"opus"`. Leave unset for RLM analysts. |
+| `run_in_background` | No | `true` to spawn async (non-blocking) |
+| `mode` | No | `"plan"` to require plan approval before the agent acts |
+| `isolation` | No | `"worktree"` to give the agent an isolated git worktree copy. Cleaned up if no changes; returns worktree path and branch if changes are made. |
+
 ---
 
 ## Configuration
@@ -137,13 +153,13 @@ All tasks are created with status `pending` and no owner.
 
 | Setting | Values | Description |
 |---------|--------|-------------|
-| `teammateMode` | `"auto"`, `"in-process"`, `"tmux"` | How teammates are displayed. `"auto"` uses split panes inside tmux, in-process otherwise |
+| `teammateMode` | `"auto"`, `"in-process"`, `"tmux"`, `"iterm2"` | How teammates are displayed. `"auto"` uses split panes inside tmux, in-process otherwise |
 
 ### CLI Flags
 
 | Flag | Description |
 |------|-------------|
-| `--teammate-mode <mode>` | Force a spawn backend for this session (`in-process`, `tmux`) |
+| `--teammate-mode <mode>` | Force a spawn backend for this session (`in-process`, `tmux`, `iterm2`) |
 
 ---
 

@@ -67,9 +67,9 @@ Task({
 
 // 3. Wait for results (messages arrive automatically)
 // 4. Synthesize findings and cleanup
-SendMessage({ type: "shutdown_request", recipient: "security", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "quality", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "simplicity", content: "Done" })
+SendMessage({ to: "security", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "quality", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "simplicity", message: { type: "shutdown_request", reason: "Done" } })
 // Wait for approvals...
 TeamDelete()
 ```

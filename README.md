@@ -114,6 +114,7 @@ swarm:orchestration-patterns
 swarm:spawn-backends
 swarm:error-handling
 swarm:rlm-pattern
+swarm:jsonl-log-analyzer
 ```
 
 ### Troubleshooting setup
@@ -190,6 +191,7 @@ All skills are available under the `swarm:` namespace.
 | [Spawn Backends](skills/spawn-backends/SKILL.md) | `swarm:spawn-backends` | In-process, tmux, iTerm2 backends, auto-detection, configuration |
 | [Error Handling](skills/error-handling/SKILL.md) | `swarm:error-handling` | Common errors, quality gate hooks, known limitations, recovery strategies |
 | [RLM Pattern](skills/rlm-pattern/SKILL.md) | `swarm:rlm-pattern` | Content-aware chunked analysis of large files and directories using RLM pattern |
+| [JSONL Log Analyzer](skills/jsonl-log-analyzer/SKILL.md) | `swarm:jsonl-log-analyzer` | Schema-aware analysis of large JSONL log files with automated field discovery and jq recipes |
 
 ---
 
@@ -201,6 +203,8 @@ All skills are available under the `swarm:` namespace.
 | [Agent Types](docs/agent-types.md) | Which agents are available and when to use each |
 | [Patterns](docs/patterns.md) | Orchestration patterns with guidance on when to pick which |
 | [RLM Examples](docs/rlm-examples.md) | Copy-paste example prompts for every RLM mode |
+| [Concepts](docs/concepts.md) | How teams, patterns, and RLM content processing work internally |
+| [Reference](docs/reference.md) | Primitives, message types, task fields, configuration, and API lookup tables |
 | [Troubleshooting](docs/troubleshooting.md) | Common failures and fixes |
 
 ---

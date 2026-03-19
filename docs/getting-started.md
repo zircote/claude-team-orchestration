@@ -104,6 +104,8 @@ In `settings.json`:
 }
 ```
 
+Valid values: `"auto"` (default), `"in-process"`, `"tmux"`, `"iterm2"`.
+
 Or per-session:
 
 ```bash
@@ -150,5 +152,6 @@ Have each send findings to team-lead, then synthesize a summary.
 
 - Read [Patterns](patterns.md) to learn the seven orchestration patterns
 - Read [Agent Types](agent-types.md) to pick the right agent for each role
+- Read [Concepts](concepts.md) to understand how teams, patterns, and RLM work internally
 - Read [Reference](reference.md) for message types, task statuses, and configuration options
 - Try the [complete workflow examples](../skills/orchestration-patterns/examples/complete-workflows.md)

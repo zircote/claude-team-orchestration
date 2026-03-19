@@ -2,6 +2,7 @@
 name: rlm-chunk-analyzer
 description: Efficient chunk-level analysis agent for RLM workflow. Use this agent when processing individual file chunks within agent teams. Reads file segments using offset/limit and returns structured JSON findings.
 model: haiku
+color: cyan
 tools:
   - Read
   - Grep
@@ -10,7 +11,6 @@ tools:
   - TaskList
   - TaskGet
   - TaskUpdate
-color: cyan
 ---
 
 # RLM Chunk Analyzer Agent

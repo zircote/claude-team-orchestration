@@ -83,11 +83,28 @@ Task({ subagent_type: "claude-code-guide", prompt: "How do I configure MCP serve
 - **Tools:** Read-only + WebFetch + WebSearch
 - **Best for:** Questions about Claude Code, Agent SDK, Anthropic API
 
+### statusline-setup
+
+```javascript
+Task({ subagent_type: "statusline-setup", prompt: "Set up a status line showing git branch and node version" })
+```
+
+- **Tools:** Read, Edit only
+- **Model:** Sonnet
+- **Best for:** Configuring Claude Code status line
+
 ---
 
 ## Plugin Agents
 
 Available when the corresponding plugins are installed. Plugin agents use the format `{plugin}:{agent-name}`.
+
+> **Plugin Agent Constraints:** Some agent frontmatter fields are **silently ignored** when running as plugin agents (for security reasons). Do not rely on these in plugin agent definitions:
+> - `hooks` — ignored (cannot execute arbitrary shell commands from plugins)
+> - `mcpServers` — ignored (MCP server injection not permitted from plugins)
+> - `permissionMode` — ignored (permission escalation from plugins is blocked)
+>
+> Fields that **are** supported in plugin agents: `name`, `description`, `tools`, `disallowedTools`, `model`, `maxTurns`, `skills`, `memory`, `background`, `isolation`.
 
 ### Review Agents
 
@@ -99,7 +116,6 @@ Available when the corresponding plugins are installed. Plugin agents use the fo
 | `feature-dev:code-reviewer` | Bugs, logic errors, security, code quality, conventions |
 | `code-simplifier:code-simplifier` | Clarity, consistency, minimalism |
 | `refactor:architect` | Architectural analysis, optimization planning |
-| `superpowers:code-reviewer` | Review against plan and coding standards |
 | `human-voice:voice-reviewer` | Content voice and tone |
 
 ### Research Agents
@@ -117,6 +133,8 @@ Available when the corresponding plugins are installed. Plugin agents use the fo
 | `refactor:architect` | Architecture analysis and optimization planning |
 | `refactor:refactor-code` | Implementation of architectural optimizations |
 | `refactor:refactor-test` | Test coverage analysis and test generation |
+| `refactor:simplifier` | Code simplification and clarity improvements post-refactor |
+| `refactor:security-review` | Security regression review for refactored code |
 
 ### CI/CD Agents
 

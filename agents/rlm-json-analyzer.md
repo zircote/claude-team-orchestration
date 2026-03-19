@@ -2,6 +2,7 @@
 name: rlm-json-analyzer
 description: JSON-aware chunk analyzer for RLM workflow. Analyzes JSON or JSONL partitions reporting schema patterns, field distributions, structural anomalies, and data characteristics. Returns structured JSON findings.
 model: haiku
+color: magenta
 tools:
   - Read
   - Grep
@@ -10,7 +11,6 @@ tools:
   - TaskList
   - TaskGet
   - TaskUpdate
-color: magenta
 ---
 
 # RLM JSON Analyzer Agent

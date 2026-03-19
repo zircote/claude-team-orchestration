@@ -345,10 +345,10 @@ Task({
 
 ```javascript
 // Request shutdown for all teammates
-SendMessage({ type: "shutdown_request", recipient: "analyst-1", content: "Analysis complete" })
-SendMessage({ type: "shutdown_request", recipient: "analyst-2", content: "Analysis complete" })
-SendMessage({ type: "shutdown_request", recipient: "analyst-3", content: "Analysis complete" })
-SendMessage({ type: "shutdown_request", recipient: "synthesizer", content: "Analysis complete" })
+SendMessage({ to: "analyst-1", message: { type: "shutdown_request", reason: "Analysis complete" } })
+SendMessage({ to: "analyst-2", message: { type: "shutdown_request", reason: "Analysis complete" } })
+SendMessage({ to: "analyst-3", message: { type: "shutdown_request", reason: "Analysis complete" } })
+SendMessage({ to: "synthesizer", message: { type: "shutdown_request", reason: "Analysis complete" } })
 
 // Wait for shutdown approvals, then cleanup
 TeamDelete()

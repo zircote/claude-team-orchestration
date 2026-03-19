@@ -238,6 +238,20 @@ Task({
   description: "Refactoring test coverage",
   prompt: "Analyze coverage, add missing tests, ensure all tests pass"
 })
+
+// Code simplification (post-refactor cleanup)
+Task({
+  subagent_type: "refactor:simplifier",
+  description: "Simplify refactored code",
+  prompt: "Simplify and refine recently changed code for clarity and consistency"
+})
+
+// Security regression check
+Task({
+  subagent_type: "refactor:security-review",
+  description: "Security review of refactored code",
+  prompt: "Review refactored code for security regressions and vulnerabilities"
+})
 ```
 
 ### CI/CD and Infrastructure Agents

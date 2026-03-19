@@ -123,6 +123,13 @@ Task({
 
 Installed plugins provide specialized agent types grouped by function.
 
+> **Plugin Agent Constraints:** Some agent frontmatter fields are **silently ignored** when running as plugin agents (for security reasons). Do not rely on these in plugin agent definitions:
+> - `hooks` — ignored (cannot execute arbitrary shell commands from plugins)
+> - `mcpServers` — ignored (MCP server injection not permitted from plugins)
+> - `permissionMode` — ignored (permission escalation from plugins is blocked)
+>
+> Fields that **are** supported in plugin agents: `name`, `description`, `tools`, `disallowedTools`, `model`, `maxTurns`, `skills`, `memory`, `background`, `isolation`.
+
 ### Review Agents
 
 ```javascript
@@ -209,20 +216,12 @@ Task({
   description: "Design feature architecture",
   prompt: "Design the architecture for adding OAuth2 authentication based on existing patterns"
 })
-
-// Memory/knowledge search
-Task({
-  subagent_type: "mnemonic:mnemonic-search-subcall",
-  description: "Search prior knowledge",
-  prompt: "Search for prior decisions and learnings about authentication"
-})
 ```
 
 **All research agents:**
 - `adr:adr-researcher` - Codebase analysis + web search for best practices
 - `feature-dev:code-explorer` - Trace execution paths, map architecture, understand dependencies
 - `feature-dev:code-architect` - Design feature architectures based on existing patterns
-- `mnemonic:mnemonic-search-subcall` - Iterative search across stored knowledge
 
 ### Refactoring Agents
 
@@ -327,7 +326,7 @@ Task({
 **RLM agents (defined by this plugin):**
 - `swarm:rlm-code-analyzer` — Haiku model, code-aware chunk analysis with scope context and analysis focus
 - `swarm:rlm-data-analyzer` — Haiku model, CSV/TSV chunk analysis with column distributions and statistics
-- `swarm:rlm-json-analyzer` — Haiku model, JSON/JSONL chunk analysis with schema patterns and field distributions
+- `swarm:rlm-json-analyzer` — Haiku model, JSON/JSONL chunk analysis with schema patterns and field distributions. Also used by the [JSONL Log Analyzer](../jsonl-log-analyzer/SKILL.md) skill for log-specific schema-aware analysis
 - `swarm:rlm-chunk-analyzer` — Haiku model, general-purpose chunk analysis for logs, prose, config, markup
 - `swarm:rlm-synthesizer` — Sonnet model, aggregates findings from multiple chunk analyses into coherent reports
 

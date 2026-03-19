@@ -95,7 +95,7 @@ Plugin agents (like `sdlc:security-reviewer`) require the corresponding plugin t
 
 ```javascript
 // Shut down all teammates
-SendMessage({ type: "shutdown_request", recipient: "worker-1", content: "Done" })
+SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "Done" } })
 // Wait for approvals...
 TeamDelete()
 ```
@@ -129,7 +129,7 @@ TeamDelete()
 
 ```javascript
 // Instead of broadcast, message specific teammates
-SendMessage({ type: "message", recipient: "worker-1", content: "...", summary: "..." })
+SendMessage({ to: "worker-1", message: "...", summary: "..." })
 ```
 
 Reserve broadcasts for critical team-wide announcements only.
@@ -179,7 +179,7 @@ TaskGet({ taskId: "1" })  // Check status of the blocker
 **Fix:** Shut down all teammates first, then wait for their approval:
 
 ```javascript
-SendMessage({ type: "shutdown_request", recipient: "worker-1", content: "Done" })
+SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "Done" } })
 // Wait for shutdown_response with approve: true
 // Then:
 TeamDelete()

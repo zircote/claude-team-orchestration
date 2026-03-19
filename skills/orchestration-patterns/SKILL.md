@@ -67,9 +67,9 @@ Task({
 
 // 3. Wait for results (messages arrive automatically)
 // 4. Synthesize findings and cleanup
-SendMessage({ type: "shutdown_request", recipient: "security", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "quality", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "simplicity", content: "Done" })
+SendMessage({ to: "security", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "quality", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "simplicity", message: { type: "shutdown_request", reason: "Done" } })
 // Wait for approvals...
 TeamDelete()
 ```
@@ -209,18 +209,13 @@ Task({
 
 // 4. Review and approve/reject
 SendMessage({
-  type: "plan_approval_response",
-  request_id: "plan-xxx",
-  recipient: "architect",
-  approve: true
+  to: "architect",
+  message: { type: "plan_approval_response", request_id: "plan-xxx", approve: true }
 })
 // OR reject with feedback:
 SendMessage({
-  type: "plan_approval_response",
-  request_id: "plan-xxx",
-  recipient: "architect",
-  approve: false,
-  content: "Please add rate limiting considerations"
+  to: "architect",
+  message: { type: "plan_approval_response", request_id: "plan-xxx", approve: false, feedback: "Please add rate limiting considerations" }
 })
 ```
 

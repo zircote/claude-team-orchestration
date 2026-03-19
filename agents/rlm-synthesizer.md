@@ -155,9 +155,8 @@ When spawned as a teammate (with `team_name`), send the consolidated report to t
 
 ```javascript
 SendMessage({
-  type: "message",
-  recipient: "team-lead",
-  content: "<your consolidated report>",
+  to: "team-lead",
+  message: "<your consolidated report>",
   summary: "Synthesis complete — consolidated findings"
 })
 ```

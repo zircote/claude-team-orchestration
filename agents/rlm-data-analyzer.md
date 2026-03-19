@@ -144,9 +144,8 @@ When the task description contains `Mode: multi-file`, you are part of a multi-f
 2. **Send only a one-line summary** to team-lead:
    ```javascript
    SendMessage({
-     type: "message",
-     recipient: "team-lead",
-     content: "Chunk 3/9 complete: 3 findings (1 distribution, 1 outlier, 1 missing_data)",
+     to: "team-lead",
+     message: "Chunk 3/9 complete: 3 findings (1 distribution, 1 outlier, 1 missing_data)",
      summary: "Chunk 3/9 — 3 findings"
    })
    ```

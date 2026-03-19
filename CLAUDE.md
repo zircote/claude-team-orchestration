@@ -4,7 +4,7 @@
 
 **swarm** — A Claude Code plugin for multi-agent orchestration. Coordinates teams of agents with shared tasks, inter-agent messaging, and 7 proven patterns including RLM for large-file analysis.
 
-- **Version:** 1.2.2
+- **Version:** 1.4.0
 - **License:** MIT
 - **Plugin namespace:** `swarm:`
 
@@ -26,15 +26,20 @@ skills/                      # Skills (each has SKILL.md)
   agent-types/               # Built-in + plugin agents, selection guide
   orchestration-patterns/    # 7 patterns + complete workflow examples
   rlm-pattern/               # Content-aware chunked analysis (RLM)
+  jsonl-log-analyzer/        # Schema-aware JSONL log analysis skill
   spawn-backends/            # in-process, tmux, iTerm2
   error-handling/            # Common errors, hooks, recovery
 docs/                        # User-facing documentation
   getting-started.md         # Install to first team run
   agent-types.md             # Agent selection guide
+  concepts.md                # Core concepts and terminology
   patterns.md                # 7 orchestration patterns
+  reference.md               # Full API and configuration reference
   rlm-examples.md            # Copy-paste RLM prompts
+  RLM-Prompt-Example.md      # Annotated RLM prompt walkthrough
   troubleshooting.md         # Common failures and fixes
   design/                    # Design documents for features
+  proposals/                 # Draft feature proposals
 ```
 
 ## Development Conventions

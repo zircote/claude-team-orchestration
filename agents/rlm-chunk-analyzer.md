@@ -144,9 +144,8 @@ When spawned as a teammate (with `team_name`), follow this workflow:
 ```javascript
 // Example: sending findings to team-lead
 SendMessage({
-  type: "message",
-  recipient: "team-lead",
-  content: "<your JSON findings>",
+  to: "team-lead",
+  message: "<your JSON findings>",
   summary: "Chunk 3/10 analysis complete"
 })
 ```
@@ -169,9 +168,8 @@ When the task description contains `Mode: multi-file`, you are part of a multi-f
 2. **Send only a one-line summary** to team-lead:
    ```javascript
    SendMessage({
-     type: "message",
-     recipient: "team-lead",
-     content: "Chunk 3/10 complete: 4 findings (2 high, 1 medium, 1 low)",
+     to: "team-lead",
+     message: "Chunk 3/10 complete: 4 findings (2 high, 1 medium, 1 low)",
      summary: "Chunk 3/10 — 4 findings"
    })
    ```

@@ -17,45 +17,38 @@ Send and receive messages between agents. All inter-agent communication flows th
 
 ## SendMessage Tool
 
-All messaging uses the `SendMessage` tool with different `type` values.
+All messaging uses the `SendMessage` tool. The `to` field specifies the recipient and the `message` field carries either a plain string or a structured protocol object.
 
-### Direct Message (type: "message")
+### Direct Message
 
 Send a message to **one specific teammate**:
 
 ```javascript
 SendMessage({
-  type: "message",
-  recipient: "security-reviewer",
-  content: "Please prioritize the authentication module. The deadline is tomorrow.",
+  to: "security-reviewer",
+  message: "Please prioritize the authentication module. The deadline is tomorrow.",
   summary: "Prioritize auth module review"  // 5-10 word preview shown in UI
 })
 ```
 
 **Parameters:**
-- `type` - `"message"` (required)
-- `recipient` - Teammate name (required)
-- `content` - Message text (required)
+- `to` - Teammate name (required)
+- `message` - Message text (required)
 - `summary` - Brief preview for UI (required)
 
 **IMPORTANT for teammates:** Your plain text output is NOT visible to the team. You MUST use `SendMessage` to communicate. Just typing a response is not enough.
 
-### Broadcast (type: "broadcast")
+### Broadcast
 
 Send the **same message to all teammates** at once:
 
 ```javascript
 SendMessage({
-  type: "broadcast",
-  content: "Status check: Please report your progress",
+  to: "*",
+  message: "Status check: Please report your progress",
   summary: "Requesting status from all teammates"
 })
 ```
-
-**Parameters:**
-- `type` - `"broadcast"` (required)
-- `content` - Message text (required)
-- `summary` - Brief preview for UI (required)
 
 **WARNING:** Broadcasting is expensive. Each broadcast sends N separate messages for N teammates. Costs scale linearly with team size.
 
@@ -69,65 +62,58 @@ SendMessage({
 - Information relevant to only some teammates
 - Following up on a task with one person
 
-### Shutdown Request (type: "shutdown_request")
+### Shutdown Request
 
 Ask a teammate to gracefully exit:
 
 ```javascript
 SendMessage({
-  type: "shutdown_request",
-  recipient: "security-reviewer",
-  content: "All tasks complete, wrapping up"
+  to: "security-reviewer",
+  message: { type: "shutdown_request", reason: "All tasks complete, wrapping up" }
 })
 ```
 
-### Shutdown Response (type: "shutdown_response")
+### Shutdown Response
 
 When you receive a shutdown request, you **MUST** respond:
 
 **Approve (exits your process):**
 ```javascript
 SendMessage({
-  type: "shutdown_response",
-  request_id: "shutdown-abc123",  // From the shutdown_request message
-  approve: true
+  to: "team-lead",
+  message: { type: "shutdown_response", request_id: "shutdown-abc123", approve: true }
+  // request_id comes from the shutdown_request message
 })
 ```
 
 **Reject (continue working):**
 ```javascript
 SendMessage({
-  type: "shutdown_response",
-  request_id: "shutdown-abc123",
-  approve: false,
-  content: "Still working on task #3, need 5 more minutes"
+  to: "team-lead",
+  message: { type: "shutdown_response", request_id: "shutdown-abc123", approve: false, reason: "Still working on task #3, need 5 more minutes" }
 })
 ```
 
 **IMPORTANT:** Extract the `requestId` from the received shutdown request JSON and pass it as `request_id`. Simply saying "I'll shut down" is NOT enough - you must call the tool.
 
-### Plan Approval Response (type: "plan_approval_response")
+### Plan Approval Response
 
 When a teammate with `plan_mode_required` sends a plan approval request:
 
 **Approve:**
 ```javascript
 SendMessage({
-  type: "plan_approval_response",
-  request_id: "plan-xyz789",   // From the plan_approval_request message
-  recipient: "architect",
-  approve: true
+  to: "architect",
+  message: { type: "plan_approval_response", request_id: "plan-xyz789", approve: true }
+  // request_id comes from the plan_approval_request message
 })
 ```
 
 **Reject with feedback:**
 ```javascript
 SendMessage({
-  type: "plan_approval_response",
-  request_id: "plan-xyz789",
-  recipient: "architect",
-  approve: false,
-  content: "Please add error handling for the API calls and consider rate limiting"
+  to: "architect",
+  message: { type: "plan_approval_response", request_id: "plan-xyz789", approve: false, feedback: "Please add error handling for the API calls and consider rate limiting" }
 })
 ```
 

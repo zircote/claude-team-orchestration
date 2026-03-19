@@ -125,8 +125,8 @@ See [Team Management](../team-management/SKILL.md) for the full shutdown procedu
 
 ```javascript
 // 1. Request shutdown for all teammates
-SendMessage({ type: "shutdown_request", recipient: "worker-1", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "worker-2", content: "Done" })
+SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "worker-2", message: { type: "shutdown_request", reason: "Done" } })
 
 // 2. Wait for shutdown approvals
 
@@ -227,13 +227,6 @@ tail -f ~/.claude/teams/{team}/inboxes/team-lead.json
 
 ## Best Practices for Error Prevention
 
-### Handle Worker Failures
-- Workers have 5-minute heartbeat timeout
-- Tasks of crashed workers can be reclaimed
-- Build retry logic into worker prompts
-
-### Avoid File Conflicts
-Two teammates editing the same file leads to overwrites. Break work so each teammate owns a different set of files.
-
-### Monitor and Steer
-Check in on teammate progress, redirect approaches that aren't working, and synthesize findings as they come in. Letting a team run unattended too long increases risk of wasted effort.
+- **Build retry logic into worker prompts** — crashed workers have a 5-minute heartbeat timeout, after which their tasks can be reclaimed
+- **Avoid file conflicts** — break work so each teammate owns a different set of files
+- **Monitor and steer** — check progress, redirect failing approaches, and synthesize findings as they arrive

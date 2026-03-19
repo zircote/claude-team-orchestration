@@ -229,11 +229,11 @@ See [Messaging](../messaging/SKILL.md) for plan approval tool syntax.
 
 ```javascript
 // 1. Request shutdown for all teammates
-SendMessage({ type: "shutdown_request", recipient: "worker-1", content: "All tasks complete" })
-SendMessage({ type: "shutdown_request", recipient: "worker-2", content: "All tasks complete" })
+SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "All tasks complete" } })
+SendMessage({ to: "worker-2", message: { type: "shutdown_request", reason: "All tasks complete" } })
 
 // 2. Wait for shutdown approvals
-// Teammates respond with: SendMessage({ type: "shutdown_response", request_id: "...", approve: true })
+// Teammates respond with: SendMessage({ to: "team-lead", message: { type: "shutdown_response", request_id: "...", approve: true } })
 
 // 3. Only then cleanup
 TeamDelete()

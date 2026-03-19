@@ -174,6 +174,8 @@ Use these placeholders in your skill content to inject runtime values:
 | `${CLAUDE_SESSION_ID}` | Current Claude session ID |
 | `${CLAUDE_SKILL_DIR}` | Absolute path to the directory containing this skill's SKILL.md |
 
+> **Security:** Do not interpolate `$ARGUMENTS` into `` !`command` `` expressions — treat it as untrusted user input. Use `$ARGUMENTS` in skill body text only, never in shell command substitutions.
+
 ### Dynamic Context Injection
 
 Use `` !`command` `` syntax to execute a shell command and inject its output as context when the skill loads:
@@ -181,6 +183,8 @@ Use `` !`command` `` syntax to execute a shell command and inject its output as 
 ```yaml
 context: !`cat ${CLAUDE_SKILL_DIR}/extra-context.md`
 ```
+
+> **Security:** Commands execute locally when the skill loads. Use only safe, read-only commands (e.g., `cat`, `git log`, `date`). Avoid network calls or mutations. Review `` !`command` `` expressions in third-party plugins before loading.
 
 ### Example: Isolated Subagent Skill
 
@@ -196,6 +200,14 @@ agent: Explore
 ```
 
 When `context: fork` is set, Claude spawns a fresh subagent of type `agent` to handle the skill invocation, keeping the main context clean.
+
+The `agent:` type determines the tool access scope of the forked subagent:
+- `Explore` — read-only (no Edit, Write, or Bash)
+- `Plan` — read-only, thoughtful analysis
+- `Bash` — shell commands only
+- `general-purpose` — full tool access (*)
+
+Choose the most restrictive agent type that meets the skill's needs.
 
 ---
 

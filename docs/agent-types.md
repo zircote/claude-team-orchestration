@@ -112,8 +112,8 @@ Available when the corresponding plugins are installed. Plugin agents use the fo
 | Agent | Focus |
 |-------|-------|
 | `refactor:architect` | Architecture analysis and optimization planning |
-| `refactor:code` | Implementation of architectural optimizations |
-| `refactor:test` | Test coverage analysis and test generation |
+| `refactor:refactor-code` | Implementation of architectural optimizations |
+| `refactor:refactor-test` | Test coverage analysis and test generation |
 
 ### CI/CD Agents
 

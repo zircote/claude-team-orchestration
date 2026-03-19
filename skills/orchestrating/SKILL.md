@@ -123,6 +123,9 @@ Task({ team_name: "my-team", name: "worker", subagent_type: "general-purpose", p
 ### Spawn Subagent (No Team)
 ```javascript
 Task({ subagent_type: "Explore", description: "Find files", prompt: "..." })
+
+// With isolated worktree (for agents making code changes)
+Task({ subagent_type: "general-purpose", description: "Apply patch", prompt: "...", isolation: "worktree" })
 ```
 
 ### Message Teammate
@@ -211,4 +214,4 @@ Choose the most restrictive agent type that meets the skill's needs.
 
 ---
 
-*Based on Claude Code agent teams documentation - Updated 2026-02-07*
+*Based on Claude Code agent teams documentation - Updated 2026-03-18*

@@ -182,17 +182,12 @@ LOOP:
    - no owner
    - not blocked
 3. If found:
-   - Claim it: TaskUpdate({ taskId: "X", owner: "YOUR_NAME" })
-   - Start it: TaskUpdate({ taskId: "X", status: "in_progress" })
+   - Claim and start it: TaskUpdate({ taskId: "X", owner: "YOUR_NAME", status: "in_progress" })
    - Do the review work
    - Complete it: TaskUpdate({ taskId: "X", status: "completed" })
    - Send findings to team-lead via SendMessage
    - Go back to step 1
-4. If no tasks available:
-   - Send idle notification to team-lead
-   - Wait 30 seconds
-   - Try again (up to 3 times)
-   - If still no tasks, exit
+4. If no tasks available, send team-lead a message that you have finished all work and stop.
 
 Replace YOUR_NAME with your actual agent name from $CLAUDE_CODE_AGENT_NAME.
 `

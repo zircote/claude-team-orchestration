@@ -169,11 +169,11 @@ chunk_count=$(( (total_rows + chunk_size - 1) / chunk_size ))
 # 4. Extract header and write chunk files
 header=$(head -1 input.csv)
 mkdir -p /tmp/rlm-chunks
-for i in $(seq 1 $chunk_count); do
+for i in $(seq 1 "$chunk_count"); do
   start=$(( (i - 1) * chunk_size + 2 ))  # +2 to skip header
   end=$(( start + chunk_size - 1 ))
-  chunk_file=$(printf "/tmp/rlm-chunks/chunk-%02d.csv" $i)
-  echo "$header" > "$chunk_file"
+  chunk_file=$(printf "/tmp/rlm-chunks/chunk-%02d.csv" "$i")
+  printf '%s\n' "$header" > "$chunk_file"
   sed -n "${start},${end}p" input.csv >> "$chunk_file"
 done
 

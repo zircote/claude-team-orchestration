@@ -52,15 +52,15 @@ Consolidated lookup tables, configuration options, and API reference for agent t
 
 ## Message Types
 
-All messaging uses the `SendMessage` tool. Five message types are available:
+All messaging uses the `SendMessage` tool with `to` (recipient name or `"*"`) and `message` fields.
 
-| Type | Direction | Required Fields | Purpose |
-|------|-----------|----------------|---------|
-| `message` | Any agent to any agent | `recipient`, `content`, `summary` | Direct message to one teammate |
-| `broadcast` | Leader to all teammates | `content`, `summary` | Same message to every teammate (expensive — N messages for N teammates) |
-| `shutdown_request` | Leader to teammate | `recipient`, `content` | Ask a teammate to gracefully exit |
-| `shutdown_response` | Teammate to leader | `request_id`, `approve` | Accept or reject a shutdown request. Optional `content` for rejection reason |
-| `plan_approval_response` | Leader to teammate | `request_id`, `recipient`, `approve` | Approve or reject a teammate's plan. Optional `content` for rejection feedback |
+| How to Send | Direction | Fields | Purpose |
+|-------------|-----------|--------|---------|
+| Direct message | Any agent to any agent | `to: "name"`, `message: "text"`, `summary: "..."` | Direct message to one teammate |
+| Broadcast | Leader to all teammates | `to: "*"`, `message: "text"`, `summary: "..."` | Same message to every teammate (expensive — N messages for N teammates) |
+| `shutdown_request` | Leader to teammate | `to: "name"`, `message: { type: "shutdown_request", reason: "..." }` | Ask a teammate to gracefully exit |
+| `shutdown_response` | Teammate to leader | `to: "team-lead"`, `message: { type: "shutdown_response", request_id: "...", approve: true }` | Accept or reject a shutdown request. Add `reason: "..."` on rejection |
+| `plan_approval_response` | Leader to teammate | `to: "name"`, `message: { type: "plan_approval_response", request_id: "...", approve: true }` | Approve or reject a teammate's plan. Add `feedback: "..."` on rejection |
 
 ### Auto-Generated Messages
 

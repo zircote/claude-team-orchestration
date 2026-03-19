@@ -94,11 +94,23 @@ Task({
 })
 ```
 
+For agents that make code changes, use `isolation: "worktree"` to give them an isolated git worktree copy. The worktree is automatically cleaned up if no changes are made; if changes are made, the worktree path and branch are returned:
+
+```javascript
+Task({
+  subagent_type: "general-purpose",
+  description: "Apply patch to codebase",
+  prompt: "Implement the described feature changes",
+  isolation: "worktree"  // Agent works in an isolated git worktree copy
+})
+```
+
 **Characteristics:**
 - Runs synchronously (blocks until complete) or async with `run_in_background: true`
 - Returns result directly to you
 - No team membership required
-- Best for: searches, analysis, focused research
+- `isolation: "worktree"` prevents changes from affecting the main working directory until reviewed
+- Best for: searches, analysis, focused research, isolated code edits
 
 ### Method 2: Task Tool + team_name + name (Teammates)
 
@@ -173,7 +185,7 @@ By default, the lead may start implementing tasks itself instead of waiting for 
 - You can change individual teammate modes **after** spawning
 - You **cannot** set per-teammate modes at spawn time
 
-> **Security Warning:** `--dangerously-skip-permissions` is inherited by ALL teammates. Every teammate can execute any tool without confirmation. Use only in fully trusted, sandboxed environments. For production workflows, omit this flag.
+> **Security:** `--dangerously-skip-permissions` is inherited by ALL teammates. Every teammate can execute any tool without confirmation. Use only in fully trusted, sandboxed environments. For production workflows, omit this flag.
 
 ---
 

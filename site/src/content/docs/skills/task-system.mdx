@@ -73,11 +73,8 @@ Returns full task with description, status, blockedBy, blocks, etc.
 ## TaskUpdate - Update Task Status
 
 ```javascript
-// Claim a task
-TaskUpdate({ taskId: "2", owner: "security-reviewer" })
-
-// Start working
-TaskUpdate({ taskId: "2", status: "in_progress" })
+// Claim and start a task (combined)
+TaskUpdate({ taskId: "2", owner: "security-reviewer", status: "in_progress" })
 
 // Mark complete
 TaskUpdate({ taskId: "2", status: "completed" })
@@ -130,10 +127,9 @@ Task claiming uses **file locking** to prevent race conditions when multiple tea
 **Self-claim workflow:**
 1. Call `TaskList()` to see available tasks
 2. Find a task with status `pending`, no owner, and empty `blockedBy`
-3. Claim it: `TaskUpdate({ taskId: "X", owner: "your-name" })`
-4. Start it: `TaskUpdate({ taskId: "X", status: "in_progress" })`
-5. Do the work
-6. Complete it: `TaskUpdate({ taskId: "X", status: "completed" })`
+3. Claim and start it in one call: `TaskUpdate({ taskId: "X", owner: "your-name", status: "in_progress" })`
+4. Do the work
+5. Complete it: `TaskUpdate({ taskId: "X", status: "completed" })`
 
 If two teammates try to claim the same task simultaneously, one will succeed and the other will see the task is already owned.
 

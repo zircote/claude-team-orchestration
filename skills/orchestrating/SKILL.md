@@ -1,6 +1,8 @@
 ---
 name: orchestrating
 description: Master multi-agent orchestration using Claude Code's agent teams and task system. Use when coordinating multiple agents, running parallel code reviews, creating pipeline workflows with dependencies, building self-organizing task queues, or any task benefiting from divide-and-conquer patterns. Routes to specialized sub-skills for team management, tasks, messaging, patterns, backends, and error handling.
+user-invocable: true
+argument-hint: "[pattern or question]"
 ---
 
 # Claude Code Swarm Orchestration
@@ -141,6 +143,59 @@ SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "All 
 // Wait for approval...
 TeamDelete()
 ```
+
+---
+
+## Skill Frontmatter Reference
+
+Every skill's `SKILL.md` starts with YAML frontmatter. `name` and `description` are required; all other fields are optional.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | **Required.** Identifier used to invoke the skill |
+| `description` | string | **Required.** Shown in autocomplete and used by Claude to select the skill |
+| `argument-hint` | string | Hint shown during autocomplete (e.g. `"[file path or query]"`) |
+| `user-invocable` | boolean | When `false`, hides from the `/` menu; skill is background knowledge for Claude only (default: `true`) |
+| `disable-model-invocation` | boolean | When `true`, Claude won't auto-load this skill; user must invoke via `/` menu |
+| `allowed-tools` | string | Restrict tool access when skill is active (e.g. `"Read, Grep, Glob"`) |
+| `model` | string | Model override when skill is active (e.g. `"haiku"`, `"sonnet"`) |
+| `context` | string | Set to `"fork"` to run skill in an isolated subagent context |
+| `agent` | string | Subagent type to use when `context: fork` (e.g. `"Explore"`, `"general-purpose"`) |
+| `hooks` | object | Lifecycle hooks scoped to this skill |
+
+### String Substitutions
+
+Use these placeholders in your skill content to inject runtime values:
+
+| Substitution | Value |
+|-------------|-------|
+| `$ARGUMENTS` | Full user input passed to the skill |
+| `$ARGUMENTS[N]` / `$N` | Nth space-separated argument (1-indexed) |
+| `${CLAUDE_SESSION_ID}` | Current Claude session ID |
+| `${CLAUDE_SKILL_DIR}` | Absolute path to the directory containing this skill's SKILL.md |
+
+### Dynamic Context Injection
+
+Use `` !`command` `` syntax to execute a shell command and inject its output as context when the skill loads:
+
+```yaml
+context: !`cat ${CLAUDE_SKILL_DIR}/extra-context.md`
+```
+
+### Example: Isolated Subagent Skill
+
+```yaml
+---
+name: my-explorer
+description: Explore codebase for patterns
+user-invocable: true
+argument-hint: "[pattern or question]"
+context: fork
+agent: Explore
+---
+```
+
+When `context: fork` is set, Claude spawns a fresh subagent of type `agent` to handle the skill invocation, keeping the main context clean.
 
 ---
 

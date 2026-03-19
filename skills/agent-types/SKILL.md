@@ -168,13 +168,6 @@ Task({
   prompt: "Review the system architecture of the authentication module"
 })
 
-// General code review against plan and standards
-Task({
-  subagent_type: "superpowers:code-reviewer",
-  description: "Plan compliance review",
-  prompt: "Review implementation against the original plan and coding standards"
-})
-
 // SDLC compliance audit
 Task({
   subagent_type: "sdlc:compliance-auditor",
@@ -190,7 +183,6 @@ Task({
 - `feature-dev:code-reviewer` - Bugs, logic errors, security, code quality, conventions
 - `code-simplifier:code-simplifier` - Clarity, consistency, minimalism
 - `refactor:architect` - Architectural analysis, optimization planning
-- `superpowers:code-reviewer` - Review against plan and coding standards
 - `human-voice:voice-reviewer` - Content voice and tone review
 
 ### Research Agents

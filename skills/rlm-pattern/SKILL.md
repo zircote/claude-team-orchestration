@@ -1,6 +1,8 @@
 ---
 name: rlm-pattern
 description: Process files exceeding context limits using the RLM (Recursive Language Model) pattern with agent teams. Use when you need to process large files, analyze documents exceeding context, apply RLM chunking, chunk and analyze large content, or handle long context documents.
+user-invocable: true
+argument-hint: "[file or directory path]"
 ---
 
 # RLM (Recursive Language Model) Pattern

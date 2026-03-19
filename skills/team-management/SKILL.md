@@ -170,9 +170,10 @@ By default, the lead may start implementing tasks itself instead of waiting for 
 ## Permissions Model
 
 - Teammates start with the **lead's permission settings**
-- If the lead runs with `--dangerously-skip-permissions`, all teammates do too
 - You can change individual teammate modes **after** spawning
 - You **cannot** set per-teammate modes at spawn time
+
+> **Security Warning:** `--dangerously-skip-permissions` is inherited by ALL teammates. Every teammate can execute any tool without confirmation. Use only in fully trusted, sandboxed environments. For production workflows, omit this flag.
 
 ---
 
@@ -240,6 +241,8 @@ TeamDelete()
 ```
 
 **Shutdown behavior:** Teammates finish their current request or tool call before shutting down, which can take time.
+
+**Automate shutdown triggers** with `TeammateIdle` and `TaskCompleted` hooks — see [Error Handling](../error-handling/SKILL.md) for hook configuration.
 
 **Crashed teammates:** Teammates have a 5-minute heartbeat timeout. If a teammate crashes:
 1. They are automatically marked as inactive after timeout

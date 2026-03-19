@@ -1,0 +1,129 @@
+{
+  "skill_name": "jsonl-log-analyzer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Analyze the application logs at /tmp/test-app-events.jsonl for error patterns. Use the JSONL log analyzer skill. I need to understand what types of errors are most frequent, whether there are temporal spikes, and which services are generating the most errors.",
+      "expected_output": "A structured analysis report covering error frequency by type, temporal distribution, and per-service breakdown, produced via the 3-phase JSONL log analyzer pipeline.",
+      "files": [
+        {
+          "path": "/tmp/test-app-events.jsonl",
+          "description": "JSONL log file with ~3000 lines containing fields: timestamp, level, service, message, error, request_id, status_code, duration_ms"
+        }
+      ],
+      "expectations": [
+        "Phase 1 schema discovery runs shell commands (head + jq) to extract field paths, types, and presence counts — does NOT read raw log lines into the orchestrator context",
+        "Field classification correctly identifies timestamp, level, error, identifier (request_id), message, status (status_code), and source (service) categories from discovered paths",
+        "jq recipes are generated using actual discovered field names (e.g., .level, .error, .service) — not generic placeholders",
+        "File is partitioned into chunks of 500-1000 lines based on schema width, and analysts are spawned using swarm:rlm-json-analyzer agent type",
+        "Synthesis uses swarm:rlm-synthesizer and includes log-specific guidance about temporal patterns, error clustering, and service breakdown",
+        "Final report contains actionable findings: top error types, temporal spikes if present, and per-service error counts"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have a JSONL file at /tmp/gateway-access.jsonl that's about 200 lines. Can you analyze it for request patterns using the JSONL log analyzer?",
+      "expected_output": "Claude should recognize that 200 lines is well below the 1500-line threshold and analyze the file directly without invoking the full RLM pipeline.",
+      "files": [
+        {
+          "path": "/tmp/gateway-access.jsonl",
+          "description": "Small JSONL file with ~200 lines of API gateway access logs"
+        }
+      ],
+      "expectations": [
+        "Claude identifies the file is under 1500 lines and determines the full JSONL log analyzer pipeline is unnecessary",
+        "Does NOT spawn analyst teams or create chunk partitions for this small file",
+        "Either reads the file directly or explains that the file is small enough for direct analysis without RLM",
+        "If it still analyzes the file, it does so in-context rather than through fan-out/fan-in orchestration"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use the JSONL log analyzer on /tmp/mixed-schema-events.jsonl — this file has audit events, metric events, and trace spans all mixed together. I need to understand what kinds of events are in there and their distribution.",
+      "expected_output": "Schema discovery detects multiple divergent object shapes, reports them distinctly, and analyst prompts include all shapes so analysts can report shape distribution per chunk.",
+      "files": [
+        {
+          "path": "/tmp/mixed-schema-events.jsonl",
+          "description": "JSONL file with ~5000 lines containing 3 distinct event shapes: audit (user, action, resource, timestamp), metric (name, value, tags, timestamp), and trace (trace_id, span_id, operation, duration, timestamp)"
+        }
+      ],
+      "expectations": [
+        "Schema discovery via jq detects that sampled lines have highly divergent field sets (not all fields present in all records)",
+        "Presence counts in the schema extract distinguish required fields (present in all samples) from shape-specific fields (present in a subset)",
+        "Analyst prompts include information about the distinct event shapes so analysts can report shape distribution per chunk",
+        "If tail sampling reveals different field patterns than head sampling, schema drift is flagged",
+        "Final synthesis groups findings by event type/shape rather than treating all records uniformly"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Analyze the logs at /tmp/app.log for errors. Use the JSONL log analyzer skill.",
+      "expected_output": "Claude should detect that the file is plain text (not JSONL) and decline to use this skill, suggesting basic RLM with swarm:rlm-chunk-analyzer instead.",
+      "files": [
+        {
+          "path": "/tmp/app.log",
+          "description": "Plain text log file (not JSON structured) with standard syslog-style lines"
+        }
+      ],
+      "expectations": [
+        "Claude attempts schema discovery but the jq extraction fails because the file is not valid JSONL",
+        "Claude recognizes this is not a JSONL file and does NOT proceed with the JSONL log analyzer pipeline",
+        "Claude suggests using basic RLM with swarm:rlm-chunk-analyzer for unstructured text logs",
+        "Claude does NOT fabricate a schema or generate jq recipes for a non-JSON file"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Use the JSONL log analyzer to investigate the production incident using /tmp/incident-logs.jsonl. The outage started around 2026-03-15T14:30:00Z. I need a timeline, affected trace IDs, and the root cause service.",
+      "expected_output": "Full 3-phase pipeline producing an incident-focused report with temporal analysis, cross-chunk trace correlation, and root cause identification.",
+      "files": [
+        {
+          "path": "/tmp/incident-logs.jsonl",
+          "description": "JSONL file with ~8000 lines containing fields: @timestamp, log_level, service_name, message, error.type, error.stack_trace, trace_id, span_id, http.status_code, http.method, http.url"
+        }
+      ],
+      "expectations": [
+        "Schema discovery correctly handles nested fields (error.type, error.stack_trace, http.status_code) using dot-notation in the extracted schema",
+        "Field classification maps @timestamp to Timestamp, log_level to Level, error.type to Error, trace_id and span_id to Identifier, service_name to Source",
+        "jq recipe for correlation trace is generated using the discovered trace_id field path: select(.trace_id == \"TRACE_ID\") | sort_by(.@timestamp) or equivalent",
+        "Chunk size is ~750 lines for a 15+ field wide schema, producing ~11 partitions",
+        "Synthesis guidance includes instructions to correlate trace_id/span_id across chunks and build temporal timeline around the incident window"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Analyze /tmp/evolving-events.jsonl with the JSONL log analyzer. This file spans 6 months of schema changes — early entries have a simple format but later entries added new fields after a migration.",
+      "expected_output": "Schema discovery samples both head and tail of the file, detects schema drift, and includes both early and late schema differences in analyst prompts.",
+      "files": [
+        {
+          "path": "/tmp/evolving-events.jsonl",
+          "description": "JSONL file with ~15000 lines. First 5000 lines have fields: ts, level, msg, service. Last 5000 lines add fields: trace_id, region, deployment_version, error_code"
+        }
+      ],
+      "expectations": [
+        "Phase 1 samples both head (first 20 lines) and tail (last 20 lines) of the file since it exceeds 1000 lines",
+        "Schema drift is explicitly flagged because tail sampling reveals fields (trace_id, region, deployment_version, error_code) absent from the head sample",
+        "The merged schema includes the union of all paths from both head and tail samples, with presence counts reflecting which samples contained each field",
+        "Analyst prompts include information about early vs late schema differences so analysts can report where the transition occurs in their chunk",
+        "Chunk size is 750 lines (15+ fields in union schema) producing ~20 partitions, batched in groups of ~15"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I have a JSON array file at /tmp/records.json (starts with [ and contains an array of objects). Use the JSONL log analyzer on it.",
+      "expected_output": "Claude should recognize this is a JSON array (not line-delimited JSONL) and decline to use this skill, suggesting Content-Aware JSON RLM instead.",
+      "files": [
+        {
+          "path": "/tmp/records.json",
+          "description": "A JSON file containing a top-level array of objects, not line-delimited JSONL"
+        }
+      ],
+      "expectations": [
+        "Claude identifies the file is a JSON array, not line-delimited JSONL",
+        "Does NOT attempt line-count partitioning or per-line jq extraction on a JSON array",
+        "Suggests using the Content-Aware JSON RLM from the rlm-pattern skill instead",
+        "Does NOT proceed with the JSONL log analyzer pipeline"
+      ]
+    }
+  ]
+}

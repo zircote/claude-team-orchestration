@@ -1,0 +1,58 @@
+[
+  {
+    "query": "I need to review a large PR that touches authentication, payments, and the API layer. I want security, performance, and code quality reviews done simultaneously.",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up a pipeline where research feeds into design which feeds into implementation and then testing.",
+    "should_trigger": true
+  },
+  {
+    "query": "I have 30 files that all need the same lint fix applied independently. How do I orchestrate agents to do this fast?",
+    "should_trigger": true
+  },
+  {
+    "query": "I want to research caching best practices and then implement them. How should I structure the agents?",
+    "should_trigger": true
+  },
+  {
+    "query": "This database migration is risky. I need to see and approve a plan before any code gets written. How do I set up agent orchestration for this?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to refactor code across 4 files where the test file depends on all other refactors finishing first. What orchestration pattern handles fan-in dependencies?",
+    "should_trigger": true
+  },
+  {
+    "query": "I have a 20,000-line log file that's too big to analyze at once. How do I use agents to process it in chunks?",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I create a team with a researcher and an implementer?",
+    "should_trigger": false
+  },
+  {
+    "query": "Send a message to all teammates telling them to stop working",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a task for the frontend agent to fix the login page",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I shut down my agent team cleanly when they finish?",
+    "should_trigger": false
+  },
+  {
+    "query": "What's the factory pattern and when should I use it in my codebase?",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I switch from in-process to tmux spawn backend?",
+    "should_trigger": false
+  },
+  {
+    "query": "My teammate crashed during a task, how do I recover the stuck work?",
+    "should_trigger": false
+  }
+]

@@ -1,0 +1,108 @@
+{
+  "skill_name": "task-system",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a team called 'backend-review'. Create a task for reviewing the database migration files in db/migrations/ for correctness and backward compatibility.",
+      "expected_output": "A TaskCreate call with subject, description, and activeForm fields properly filled in. Task starts as pending with no owner.",
+      "files": [],
+      "expectations": [
+        "Uses TaskCreate (not TaskUpdate or other tool) to create the task",
+        "subject field contains a brief imperative-form title about reviewing database migrations",
+        "description field provides detail about reviewing db/migrations/ for correctness and backward compatibility",
+        "activeForm field is present and uses present continuous tense (e.g., 'Reviewing database migration files...')",
+        "Does NOT set owner or status fields in the TaskCreate call (tasks start as pending with no owner by default)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Set up a 4-step pipeline for our release process: first lint the code, then run unit tests, then build artifacts, then deploy to staging. Each step must wait for the previous one to finish.",
+      "expected_output": "Four TaskCreate calls followed by three TaskUpdate calls using addBlockedBy to create a linear dependency chain: #2 blocked by #1, #3 blocked by #2, #4 blocked by #3.",
+      "files": [],
+      "expectations": [
+        "Creates exactly 4 tasks via TaskCreate, one for each pipeline step (lint, test, build, deploy)",
+        "Uses TaskUpdate with addBlockedBy to set dependencies, NOT blockedBy in TaskCreate",
+        "Task for running tests is blocked by the lint task (addBlockedBy references the lint task ID)",
+        "Task for building artifacts is blocked by the test task",
+        "Task for deploying to staging is blocked by the build task",
+        "Dependencies form a strict linear chain with no gaps or extra links"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I'm agent 'api-reviewer' on the review team. Show me what tasks are available, then claim the first unblocked pending task and start working on it.",
+      "expected_output": "A TaskList call followed by a TaskUpdate that sets both owner to 'api-reviewer' and status to 'in_progress' in a single call.",
+      "files": [],
+      "expectations": [
+        "Calls TaskList() first to see available tasks",
+        "Identifies a task that is pending, has no owner, and has empty blockedBy",
+        "Uses a single TaskUpdate call that sets BOTH owner and status fields together",
+        "Sets owner to 'api-reviewer' (matching the agent name given)",
+        "Sets status to 'in_progress' (not 'completed' or left as 'pending')"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Create a fan-in task structure: three independent analysis tasks (security audit, performance profiling, code quality check), and a final summary task that can only start after all three are complete.",
+      "expected_output": "Four TaskCreate calls plus one TaskUpdate with addBlockedBy listing all three analysis task IDs.",
+      "files": [],
+      "expectations": [
+        "Creates exactly 4 tasks: three independent analysis tasks and one summary task",
+        "The three analysis tasks have NO dependencies (no addBlockedBy set on them)",
+        "Uses TaskUpdate with addBlockedBy on the summary task referencing all three analysis task IDs",
+        "The addBlockedBy array contains exactly 3 task IDs (fan-in, not chain)",
+        "Each task has a distinct subject, description, and activeForm"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I just finished task #3. Mark it as completed, then check if any tasks that were blocked by it are now available for work.",
+      "expected_output": "A TaskUpdate setting task #3 to completed, followed by a TaskList to check for newly unblocked tasks.",
+      "files": [],
+      "expectations": [
+        "Calls TaskUpdate with taskId '3' and status 'completed'",
+        "Does NOT change the owner when marking complete (only status is updated)",
+        "Calls TaskList() after completing to check for newly unblocked tasks",
+        "Mentions that blocked tasks are automatically unblocked when their blockers complete",
+        "Checks TaskList output for tasks that were previously blocked by #3 and are now pending"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "We have a task #7 that is no longer needed because the feature was cancelled. Remove it from the task list.",
+      "expected_output": "A TaskUpdate call setting task #7's status to 'deleted'.",
+      "files": [],
+      "expectations": [
+        "Uses TaskUpdate (not a different mechanism) to delete the task",
+        "Sets taskId to '7'",
+        "Sets status to 'deleted' (the only valid way to remove tasks)",
+        "Does NOT attempt to use a 'TaskDelete' tool or file system operations to remove the task"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Create two tasks for our data team: one to extract customer records from the legacy database, and one to transform and load them into the new schema. The transform task depends on extraction finishing first. Make sure the descriptions include clear acceptance criteria.",
+      "expected_output": "Two TaskCreate calls with detailed descriptions including acceptance criteria, followed by a TaskUpdate adding a dependency from the transform task to the extract task.",
+      "files": [],
+      "expectations": [
+        "Creates exactly 2 tasks via TaskCreate",
+        "Both tasks have description fields that include explicit acceptance criteria (not just a vague sentence)",
+        "Uses TaskUpdate with addBlockedBy to make the transform/load task depend on the extract task",
+        "subject fields use imperative form (e.g., 'Extract customer records...' not 'Extracting...')",
+        "activeForm fields use present continuous form (e.g., 'Extracting customer records...')"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I want to add a new dependency: task #5 should now also wait for task #2 to finish before it can start. Task #5 already depends on task #1.",
+      "expected_output": "A TaskUpdate call on task #5 using addBlockedBy with task #2, adding to (not replacing) the existing dependency on task #1.",
+      "files": [],
+      "expectations": [
+        "Uses TaskUpdate with taskId '5'",
+        "Uses addBlockedBy (not blockedBy or a replacement operation) to ADD task #2 as a dependency",
+        "addBlockedBy contains '2' (just the new dependency, since addBlockedBy appends)",
+        "Does NOT remove or overwrite the existing dependency on task #1"
+      ]
+    }
+  ]
+}

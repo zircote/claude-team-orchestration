@@ -1,0 +1,50 @@
+[
+  {
+    "query": "Create a task for the team to review the API endpoint handlers.",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up task dependencies so that the deploy step runs after tests pass.",
+    "should_trigger": true
+  },
+  {
+    "query": "Mark task #4 as done and see what work is now unblocked.",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to claim a task from the shared task list for my agent.",
+    "should_trigger": true
+  },
+  {
+    "query": "Delete task number 6 from the backlog, it's obsolete.",
+    "should_trigger": true
+  },
+  {
+    "query": "Create a team of four agents to work on the migration project",
+    "should_trigger": false
+  },
+  {
+    "query": "Send a message to the security-reviewer agent with the audit results",
+    "should_trigger": false
+  },
+  {
+    "query": "Which orchestration pattern works best for fan-in dependencies?",
+    "should_trigger": false
+  },
+  {
+    "query": "Add a todo item to my personal checklist for the sprint",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I shut down a teammate that's been idle for too long?",
+    "should_trigger": false
+  },
+  {
+    "query": "I need to track issues in my GitHub project board",
+    "should_trigger": false
+  },
+  {
+    "query": "Broadcast a plan update to all active teammates on the team",
+    "should_trigger": false
+  }
+]

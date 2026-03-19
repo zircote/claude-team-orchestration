@@ -1,0 +1,120 @@
+{
+  "skill_name": "rlm-pattern",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a CSV file at /data/exports/tickets.csv with 25,000 rows and 45 columns. Can you analyze it for trends in ticket resolution times and category distributions?",
+      "expected_output": "Team Lead detects structured_data via .csv extension, partitions into ~17 chunks of ~1500 rows each (wide data: 45 columns), creates one task per chunk with identical query, spawns swarm:rlm-data-analyzer analysts, synthesizes aggregated findings.",
+      "files": ["/data/exports/tickets.csv"],
+      "expectations": [
+        "Detects content type as structured_data with High confidence from .csv extension",
+        "Uses ~1500 row chunk size because the file has 45 columns (wide data, 20+ columns)",
+        "Creates approximately 17 partition tasks (25000 / 1500), NOT 1 task for the whole file",
+        "Every task contains the SAME query (trends in resolution times and category distributions) - tasks differ only by row range",
+        "Routes all analysts to swarm:rlm-data-analyzer, NOT swarm:rlm-chunk-analyzer",
+        "Preserves the CSV header row in every chunk file"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Analyze the Python file at /src/app/main.py - it's about 4200 lines. Look for security vulnerabilities.",
+      "expected_output": "Team Lead detects source_code from .py extension, partitions at function/class boundaries into 150-300 line chunks, sets analysis focus to 'security', spawns swarm:rlm-code-analyzer analysts, prepends import block to each chunk.",
+      "files": ["/src/app/main.py"],
+      "expectations": [
+        "Detects content type as source_code with High confidence from .py extension",
+        "Partitions at function/class boundaries (def, class keywords at indentation level 0), NOT arbitrary line ranges",
+        "Chunk sizes stay within 150-300 lines; chunks exceeding 300 lines are split at inner boundaries",
+        "Extracts the import block from the file and prepends it to every chunk for dependency awareness",
+        "Sets analysis focus to 'security' in analyst prompts based on the user's goal",
+        "Routes analysts to swarm:rlm-code-analyzer, NOT swarm:rlm-chunk-analyzer"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need you to analyze the error patterns in /var/log/app/server.log. The file is about 40,000 lines.",
+      "expected_output": "Team Lead detects log content type, partitions into line ranges with overlap, spawns swarm:rlm-chunk-analyzer analysts with chunk M of N indexing, synthesizes temporal patterns.",
+      "files": ["/var/log/app/server.log"],
+      "expectations": [
+        "Detects content type as log with High confidence from .log extension",
+        "Partitions into line ranges targeting 5-10 partitions (200-5000 lines per chunk, adjustable)",
+        "Includes 20-50 lines of overlap between consecutive chunks to prevent splitting multi-line stack traces",
+        "Each analyst receives 'chunk M of N' indexing for temporal ordering",
+        "Routes analysts to swarm:rlm-chunk-analyzer",
+        "Uses Read offset/limit for partition method (no chunk files written to disk)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Review the project directory at /project/src/ which has 3 Python files (2800, 1900, 3200 lines each), 2 JSON configs (250 and 180 lines), and a README.md (300 lines).",
+      "expected_output": "Multi-file RLM: enumerates files, partitions large Python files into ~200-line chunks at function boundaries, batches small JSON and prose files, spawns mixed analyst types, runs two-phase synthesis.",
+      "files": [
+        "/project/src/app.py",
+        "/project/src/models.py",
+        "/project/src/utils.py",
+        "/project/src/config1.json",
+        "/project/src/config2.json",
+        "/project/src/README.md"
+      ],
+      "expectations": [
+        "Uses multi-file RLM mode, not single-file mode, because directory contains mixed content types",
+        "Partitions each Python file into chunks using function/class boundaries (~150-300 line chunks), NOT one task per Python file",
+        "Batches the two small JSON files (250+180=430 lines, under 1500) into a single analyst task",
+        "The README (300 lines, under 1500) gets one analyst task as a lone small file",
+        "Spawns mixed analyst types simultaneously: swarm:rlm-code-analyzer for Python chunks, swarm:rlm-json-analyzer for JSON batch",
+        "Runs two-phase synthesis: Phase 1 parallel per-type synthesis, then Phase 2 cross-type synthesis"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Can you review this small utility file at /src/helpers.py? It's about 200 lines.",
+      "expected_output": "Team Lead determines the file is under the 1500-line threshold and does NOT use RLM. Reads and analyzes the file directly in context.",
+      "files": ["/src/helpers.py"],
+      "expectations": [
+        "Does NOT invoke the RLM pattern because the file is ~200 lines, well under the ~1500 line threshold",
+        "Reads and analyzes the file directly without creating teams, partitions, or analyst agents",
+        "Does NOT create a TeamCreate call or spawn analyst teammates",
+        "Provides analysis results directly from the team lead's own reading of the file"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Analyze the error patterns in this log file. I want Task 1 to look at error frequencies, Task 2 to analyze root causes, Task 3 to find temporal trends, and Task 4 to synthesize. The file is /var/log/production.log with 20,000 lines.",
+      "expected_output": "Team Lead rejects the user's thematic decomposition and correctly applies data partitioning instead. Each task gets a chunk of lines with the SAME full query.",
+      "files": ["/var/log/production.log"],
+      "expectations": [
+        "Does NOT create tasks named 'error frequencies', 'root causes', 'temporal trends' as separate analysis concerns",
+        "Recognizes the user's suggestion as thematic decomposition (the WRONG pattern) and applies data partitioning instead",
+        "Creates tasks based on line ranges (e.g., 'chunk 1 of N - lines 1-5000') where each task analyzes ALL aspects (errors, root causes, trends)",
+        "Every analyst task contains the SAME query covering all analysis goals - only the data range differs",
+        "Explains to the user why data partitioning is used instead of their suggested thematic approach"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Process the directory /data/exports/ which has 11 CSV files, each around 10,000 rows with about 2000 columns of Jira export data. Find patterns across all the data.",
+      "expected_output": "Multi-file RLM with mandatory CSV partitioning. Each CSV file is partitioned into ~1500-row chunks (wide/sparse data), producing ~77 total tasks across all files, with staged spawning of swarm:rlm-data-analyzer analysts.",
+      "files": [],
+      "expectations": [
+        "Partitions EACH of the 11 CSV files into chunks - does NOT create just 11 tasks (one per file)",
+        "Uses ~1500 rows per chunk because the data is wide (2000+ columns) and sparse (Jira exports)",
+        "Total task count is approximately 73-77 (11 files x ~7 chunks each), significantly more than 11",
+        "Uses staged spawning in batches of ~15 analysts because total analyst count exceeds 50",
+        "All analysts are swarm:rlm-data-analyzer (single content type, no mixed analyst routing needed)",
+        "Only Phase 1 synthesis is needed (no Phase 2 cross-type synthesis since all files are the same type)"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I have a compressed file at /data/archive.tar.gz. Can you analyze its contents?",
+      "expected_output": "Team Lead extracts the archive first, then enumerates extracted files, detects content types, and applies appropriate single-file or multi-file RLM depending on what was inside.",
+      "files": ["/data/archive.tar.gz"],
+      "expectations": [
+        "Extracts the archive using 'tar xzf /data/archive.tar.gz -C /tmp/rlm-extract/' before any content-type detection",
+        "After extraction, enumerates the extracted files to determine if single-file or multi-file RLM is needed",
+        "If archive contains a single file, proceeds with single-file RLM on the extracted file",
+        "If archive contains multiple files, proceeds with multi-file directory analysis on the extraction directory",
+        "Content-type detection runs on extracted files, NOT on the .tar.gz itself"
+      ]
+    }
+  ]
+}

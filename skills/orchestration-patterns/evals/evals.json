@@ -1,0 +1,115 @@
+{
+  "skill_name": "orchestration-patterns",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to review a large PR that touches authentication, payments, and the API layer. I want security, performance, and code quality reviews done simultaneously. How should I set this up?",
+      "expected_output": "Parallel Specialists pattern with TeamCreate, multiple Task calls with specialized subagent types running in background, SendMessage for shutdown, TeamDelete for cleanup",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate to create a named team before spawning agents",
+        "Spawns at least 3 specialist agents using separate Task calls with run_in_background: true",
+        "Each specialist has a distinct focus area (security, performance, code quality) reflected in subagent_type or prompt",
+        "Uses SendMessage with shutdown_request type to gracefully terminate agents after collecting results",
+        "Calls TeamDelete for cleanup at the end",
+        "Does NOT use TaskCreate with dependencies (this is parallel, not pipeline)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm building a new feature that needs to go through research, design, implementation, testing, and then final review. Each step depends on the previous one finishing first. Set up the orchestration for this.",
+      "expected_output": "Pipeline pattern with TaskCreate for each stage and TaskUpdate to set up linear dependency chain",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate to create a team",
+        "Creates multiple tasks via TaskCreate for each pipeline stage (research, design, implement, test, review)",
+        "Uses TaskUpdate with addBlockedBy to create sequential dependencies (task 2 blocked by 1, task 3 blocked by 2, etc.)",
+        "Spawns workers via Task with run_in_background: true that claim and complete tasks",
+        "Workers are instructed to check TaskList or poll for unblocked tasks"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I have 25 Ruby model files that all need the same migration applied: replacing deprecated ActiveRecord callbacks with the new syntax. Each file is independent. Set it up to go as fast as possible.",
+      "expected_output": "Swarm pattern with a task pool and multiple worker agents that race to claim and process tasks",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate to create a swarm team",
+        "Creates independent tasks via TaskCreate (one per file or group of files) with NO dependencies between them",
+        "Spawns multiple worker agents (3+) with identical swarm worker prompts",
+        "Worker prompt includes the swarm loop: TaskList, find pending task, claim with TaskUpdate, do work, mark completed, repeat",
+        "Does NOT set up any TaskUpdate addBlockedBy dependencies (tasks are independent)",
+        "Workers are general-purpose type since the work is uniform"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I want to add Redis caching to our API but I'm not sure about the best approach. Can you first research caching strategies and then implement based on what you find?",
+      "expected_output": "Research + Implementation pattern using synchronous research subagent followed by implementation subagent that receives research findings",
+      "files": [],
+      "expectations": [
+        "Uses a synchronous (non-background) Task call for the research phase that returns results before proceeding",
+        "Research agent uses a research-oriented subagent_type (e.g., adr:adr-researcher)",
+        "Implementation Task receives the research findings in its prompt (pass-through of research content)",
+        "Does NOT require TeamCreate — this pattern uses plain subagents, not a team",
+        "Research completes before implementation begins (sequential phase gate)"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We need to add OAuth2 authentication to our app. This is a security-sensitive change so I want to see and approve the implementation plan before any code is written.",
+      "expected_output": "Plan Approval pattern with plan mode agent that sends plan_approval_request, waits for approval/rejection before implementing",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate to create a team",
+        "Spawns an architect agent with mode: 'plan' to require plan approval",
+        "Explains the plan_approval_request message flow (agent sends plan for review)",
+        "Shows SendMessage with plan_approval_response including approve: true or approve: false with feedback",
+        "Demonstrates the rejection path with feedback for plan revision"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I need to refactor our authentication system. The User model needs auth methods extracted to a concern, the SessionsController needs updating to use the new concern, and then all the auth specs need to be rewritten. The specs can't start until both the model and controller refactors are done.",
+      "expected_output": "Multi-File Refactoring pattern with fan-in dependencies where spec task is blocked by both model and controller tasks",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate to create a refactoring team",
+        "Creates at least 3 tasks via TaskCreate: model refactor, controller refactor, and spec update",
+        "Uses TaskUpdate with addBlockedBy to make the spec task depend on BOTH model and controller tasks (fan-in dependency)",
+        "Model and controller tasks have NO dependencies on each other (they run in parallel)",
+        "Spawns separate worker agents for each task, each with clear file ownership boundaries",
+        "Spec worker is instructed to wait for its task to unblock before starting"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I have a 15,000-line production log file that I need analyzed for error patterns, performance bottlenecks, and any signs of security incidents. The file is way too large to read at once.",
+      "expected_output": "RLM pattern with content-aware chunking, parallel analyst teammates, and synthesis phase",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate to create an RLM analysis team",
+        "Creates multiple TaskCreate entries for file partitions/chunks with line ranges",
+        "Spawns analyst agents as TEAMMATES (with team_name and name parameters), NOT plain subagents",
+        "Uses content-type-specific analyst subagent_type (e.g., swarm:rlm-chunk-analyzer for logs)",
+        "Each analyst is assigned exactly one chunk (1 analyst per partition)",
+        "Includes a synthesis phase to aggregate findings across all chunks",
+        "Uses pass-by-reference (file path + line ranges) rather than pasting content into prompts"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I have a project where I need to: first research the best testing framework for our Rust project, then based on the findings refactor 12 existing test files to use the new framework (each file is independent), and finally generate a summary report once all files are migrated. What orchestration pattern should I use and how would you set it up?",
+      "expected_output": "Combination of patterns: Research+Implementation for the initial research, then Swarm for the 12 independent file migrations, then a final sequential synthesis step. May also use Pipeline at the top level with phase gates.",
+      "files": [],
+      "expectations": [
+        "Identifies that no single pattern fits — this requires combining multiple patterns",
+        "Uses a synchronous research phase first (Research+Implementation pattern) before any migration work begins",
+        "Uses Swarm or Parallel Specialists pattern for the 12 independent file migrations (NOT a pipeline, since files are independent)",
+        "Includes a final synthesis/report step that depends on all migration tasks completing",
+        "Sets up proper dependencies so migration phase cannot start before research completes and report cannot start before all migrations complete",
+        "Explains the rationale for combining patterns rather than forcing a single pattern"
+      ]
+    }
+  ]
+}

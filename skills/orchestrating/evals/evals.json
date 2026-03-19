@@ -1,0 +1,107 @@
+{
+  "skill_name": "orchestrating",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to have 3 agents review different parts of my codebase at the same time. How do I set that up?",
+      "expected_output": "Shows TeamCreate to create a team, then spawning 3 teammates via Task with team_name, name, and run_in_background. Uses the parallel specialists pattern.",
+      "files": [],
+      "expectations": [
+        "Response includes TeamCreate call with a team_name and description",
+        "Response spawns exactly 3 teammates using Task with team_name, name, and run_in_background: true",
+        "Each teammate Task includes a distinct prompt describing its review focus area",
+        "Response mentions or references the parallel specialists pattern or orchestration-patterns sub-skill",
+        "Response includes how to collect results via SendMessage or reading task completions"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "What are the core primitives in swarm orchestration?",
+      "expected_output": "Lists and explains all 7 primitives: Agent, Team, Teammate, Leader, Task, Inbox, Message, Backend.",
+      "files": [],
+      "expectations": [
+        "Response names all 7 primitives: Agent, Team, Teammate, Leader, Task, Inbox, Message, and Backend",
+        "Agent is described as a Claude instance that can use tools",
+        "Team is described as a named group with one leader and multiple teammates",
+        "Task is described as having subject, description, status, owner, and dependencies",
+        "Message is described as a JSON object sent between agents via inboxes",
+        "Backend is described with the three types: in-process, tmux, iterm2"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to process a 50,000 line log file and find error patterns across it",
+      "expected_output": "Routes to the RLM pattern sub-skill for chunked analysis of the large file.",
+      "files": [],
+      "expectations": [
+        "Response identifies this as an RLM pattern use case due to the large file size",
+        "Response references or routes to the rlm-pattern sub-skill",
+        "Response does NOT suggest loading the entire file into a single agent",
+        "Response mentions content-aware chunking or splitting the file for parallel analysis"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "How do I create a pipeline where step 2 can't start until step 1 finishes?",
+      "expected_output": "Shows TaskCreate for both steps and TaskUpdate with addBlockedBy to create the dependency.",
+      "files": [],
+      "expectations": [
+        "Response uses TaskCreate for step 1 with a subject and description",
+        "Response uses TaskCreate for step 2 with a subject and description",
+        "Response uses TaskUpdate with addBlockedBy to link step 2 to step 1's task ID",
+        "Response references the pipeline pattern or routes to orchestration-patterns sub-skill",
+        "The dependency direction is correct: step 2 is blocked by step 1, not the reverse"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "How do I shut down my team when all work is done?",
+      "expected_output": "Shows the full shutdown protocol: SendMessage with shutdown_request, wait for shutdown_response approval, then TeamDelete.",
+      "files": [],
+      "expectations": [
+        "Response includes SendMessage with a message of type shutdown_request to each teammate",
+        "Response explicitly mentions waiting for shutdown_response approval before proceeding",
+        "Response includes TeamDelete as the final cleanup step",
+        "The shutdown sequence is ordered: request -> wait for approval -> delete (not delete first)"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I want to spawn a quick subagent to explore the codebase but I don't need a whole team for it",
+      "expected_output": "Shows Task with subagent_type Explore and no team_name, demonstrating solo subagent usage.",
+      "files": [],
+      "expectations": [
+        "Response uses Task tool without team_name parameter",
+        "Response sets subagent_type to 'Explore' for read-only codebase exploration",
+        "Response does NOT include TeamCreate since no team is needed",
+        "Response includes a prompt parameter describing what to explore"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "What sub-skills are available for orchestration and when should I use each one?",
+      "expected_output": "Lists all 8 sub-skills with their purposes: team-management, task-system, agent-types, messaging, orchestration-patterns, rlm-pattern, spawn-backends, error-handling.",
+      "files": [],
+      "expectations": [
+        "Response lists team-management and describes it covers creating teams, spawning, shutdown, cleanup",
+        "Response lists task-system and describes it covers TaskCreate, dependencies, claiming",
+        "Response lists messaging and describes it covers SendMessage and message formats",
+        "Response lists orchestration-patterns and describes it covers the 7 patterns",
+        "Response lists rlm-pattern and describes it covers chunked analysis of large files",
+        "Response lists at least 7 of the 8 sub-skills total"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I need agents to make code changes in parallel without stepping on each other's work. How?",
+      "expected_output": "Shows spawning agents with isolation: 'worktree' to give each agent its own git worktree, preventing conflicts.",
+      "files": [],
+      "expectations": [
+        "Response mentions using isolation: 'worktree' in the Task call",
+        "Response explains that worktree gives each agent an isolated copy to avoid conflicts",
+        "Response uses subagent_type 'general-purpose' since agents need write access",
+        "Response does NOT suggest agents can safely edit the same files without isolation"
+      ]
+    }
+  ]
+}

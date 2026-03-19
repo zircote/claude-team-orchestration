@@ -1,0 +1,113 @@
+{
+  "skill_name": "team-management",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a team called 'auth-refactor' to work on migrating our authentication from session-based to JWT. Then spawn two workers: a researcher to analyze the current auth code and an implementer to make changes.",
+      "expected_output": "TeamCreate with correct team_name and description, followed by two Task calls with team_name, name, subagent_type, and appropriate prompts",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate with team_name 'auth-refactor' (not any other tool or manual file creation)",
+        "TeamCreate includes a description parameter describing the JWT migration work",
+        "Spawns researcher teammate using Task with team_name: 'auth-refactor' and a name parameter",
+        "Spawns implementer teammate using Task with team_name: 'auth-refactor' and a name parameter",
+        "Both teammate Task calls include run_in_background: true",
+        "Researcher uses an appropriate subagent_type such as 'Explore' and implementer uses 'general-purpose' or similar"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I need to shut down my team. I have three workers: 'analyzer', 'writer', and 'tester'. Walk me through the proper shutdown and cleanup.",
+      "expected_output": "Three SendMessage shutdown_request calls, mention waiting for shutdown_response approvals, then TeamDelete",
+      "files": [],
+      "expectations": [
+        "Sends shutdown_request message to all three workers (analyzer, writer, tester) via SendMessage",
+        "Each SendMessage uses message type 'shutdown_request' (not just a plain text message)",
+        "Explicitly states to wait for shutdown_response approvals before cleanup",
+        "Uses TeamDelete only after all shutdown responses are received",
+        "Does NOT skip the shutdown handshake and jump straight to TeamDelete",
+        "Mentions that teammates finish their current request before shutting down"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I want to set up a team where the lead only coordinates and never writes code. How do I configure that?",
+      "expected_output": "Explanation of delegate mode enabled via Shift+Tab after team creation",
+      "files": [],
+      "expectations": [
+        "Mentions delegate mode by name as the mechanism for coordination-only lead",
+        "States that the team must be created first before enabling delegate mode",
+        "Explains that Shift+Tab is used to cycle into delegate mode",
+        "Describes that delegate mode restricts the lead to coordination tools: spawning, messaging, task management",
+        "Does NOT suggest a custom config flag or environment variable to enable delegate mode"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need a quick subagent to search for all files importing 'lodash' in my codebase. I don't need a whole team for this. What's the right approach?",
+      "expected_output": "Use Task tool without team_name/name for a short-lived subagent, not TeamCreate",
+      "files": [],
+      "expectations": [
+        "Uses Task tool (subagent) WITHOUT team_name and WITHOUT name parameters",
+        "Sets subagent_type to 'Explore' or similar read-only type",
+        "Does NOT call TeamCreate for this one-off search",
+        "Suggests model: 'haiku' for this simple search task",
+        "Explains the difference: subagents are for short-lived focused work, teammates are for persistent collaboration"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "One of my teammates 'data-processor' seems to have crashed. Its tasks are still pending. What happens and how do I recover?",
+      "expected_output": "Explanation of 5-minute heartbeat timeout, task reassignment, and cleanup after timeout",
+      "files": [],
+      "expectations": [
+        "Mentions the 5-minute heartbeat timeout for detecting crashed teammates",
+        "States the teammate is automatically marked inactive after the timeout",
+        "Explains that the crashed teammate's tasks remain in the task list",
+        "States that another teammate can claim the abandoned tasks",
+        "Notes that TeamDelete/cleanup will work after the timeout expires",
+        "Does NOT suggest manually editing config.json to remove the crashed teammate"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Set up a careful review pipeline. Create a team 'security-audit' and spawn an architect who must submit a plan before doing any work.",
+      "expected_output": "TeamCreate followed by Task with mode: 'plan', subagent_type: 'Plan', and explanation of plan approval flow",
+      "files": [],
+      "expectations": [
+        "Uses TeamCreate with team_name 'security-audit'",
+        "Spawns the architect with mode: 'plan' to require plan approval",
+        "Uses subagent_type 'Plan' for the architect teammate",
+        "Includes team_name and name parameters in the Task call",
+        "Mentions the plan_approval_request flow where the teammate sends the plan to the lead for review",
+        "Notes that rejected plans cause the teammate to revise and resubmit"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I'm running a team with --dangerously-skip-permissions. What are the security implications for my teammates?",
+      "expected_output": "Warning that the flag is inherited by ALL teammates, granting unrestricted tool access",
+      "files": [],
+      "expectations": [
+        "States that --dangerously-skip-permissions is inherited by ALL teammates",
+        "Explains that every teammate can execute any tool without confirmation",
+        "Recommends using this only in fully trusted, sandboxed environments",
+        "Advises omitting the flag for production workflows",
+        "Does NOT suggest per-teammate permission overrides at spawn time (since that is not supported)"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I want a teammate to make code changes without affecting my main working directory. How should I spawn it?",
+      "expected_output": "Use Task with isolation: 'worktree' to give the agent an isolated git worktree",
+      "files": [],
+      "expectations": [
+        "Specifies isolation: 'worktree' in the Task call",
+        "Explains that the agent works in an isolated git worktree copy",
+        "Notes that the worktree is automatically cleaned up if no changes are made",
+        "States that if changes are made, the worktree path and branch are returned for review",
+        "Does NOT confuse worktree isolation with Docker containers or other sandboxing"
+      ]
+    }
+  ]
+}

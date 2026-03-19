@@ -1,0 +1,42 @@
+[
+  {
+    "query": "Send a message to the security-reviewer asking them to check the auth module",
+    "should_trigger": true
+  },
+  {
+    "query": "Broadcast to all teammates that we found a critical bug",
+    "should_trigger": true
+  },
+  {
+    "query": "Send a shutdown request to worker-1",
+    "should_trigger": true
+  },
+  {
+    "query": "I received a plan approval request, how do I respond?",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I debug a teammate's inbox to see their messages?",
+    "should_trigger": true
+  },
+  {
+    "query": "Create a new team with three code reviewers",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a task for reviewing the API endpoints",
+    "should_trigger": false
+  },
+  {
+    "query": "What orchestration pattern should I use for a code review?",
+    "should_trigger": false
+  },
+  {
+    "query": "How do agents communicate with each other in a team?",
+    "should_trigger": true
+  },
+  {
+    "query": "What happens when a teammate goes idle after finishing work?",
+    "should_trigger": true
+  }
+]

@@ -1,0 +1,94 @@
+{
+  "skill_name": "spawn-backends",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to see what my teammates are doing in real-time. Right now I'm running Claude Code in a plain Terminal.app window on macOS. What are my options?",
+      "expected_output": "Guidance on switching from in-process to a visual backend (tmux or iTerm2), with setup steps for each",
+      "files": [],
+      "expectations": [
+        "Explains that in-process backend (the current default in a plain terminal) does NOT show real-time teammate output",
+        "Recommends tmux as an option and mentions installing it (e.g., brew install tmux) then starting a tmux session",
+        "Recommends iTerm2 as an alternative and mentions the it2 CLI requirement plus enabling Python API",
+        "Does NOT suggest iTerm2 will work inside Terminal.app — clarifies iTerm2 backend requires actually running in iTerm2",
+        "Mentions at least one way to force a backend: settings.json teammateMode, CLI flag --teammate-mode, or CLAUDE_CODE_SPAWN_BACKEND env var"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "How does auto-detection decide which spawn backend to use? Walk me through the logic.",
+      "expected_output": "The complete auto-detection decision tree with all four detection checks",
+      "files": [],
+      "expectations": [
+        "States that $TMUX env var is checked first, and if set, tmux backend is selected",
+        "States that $TERM_PROGRAM or $ITERM_SESSION_ID is checked for iTerm2 detection",
+        "Explains that inside iTerm2, the it2 CLI must be installed for the iterm2 backend to be used",
+        "Explains the fallback: if not in tmux and not in iTerm2, checks if tmux is available on the system",
+        "Mentions that in-process is the final fallback when neither tmux nor iTerm2 is available",
+        "Does NOT incorrectly claim iTerm2 is checked before tmux (tmux is checked first)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I set teammateMode to tmux in my settings.json but I keep getting 'No pane backend available'. What's wrong?",
+      "expected_output": "Diagnosis that tmux is not installed on the system, with installation instructions",
+      "files": [],
+      "expectations": [
+        "Identifies that the error means neither tmux nor iTerm2 is available on the system",
+        "Recommends installing tmux, suggesting brew install tmux or equivalent",
+        "Does NOT suggest the error is caused by a settings.json syntax issue without first addressing the missing tmux binary",
+        "Mentions that the user can verify tmux availability with 'which tmux' or similar command"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I'm running Claude Code inside iTerm2 on my Mac but teammates spawn as in-process instead of split panes. How do I fix this?",
+      "expected_output": "Diagnosis of missing it2 CLI or disabled Python API, with step-by-step fix",
+      "files": [],
+      "expectations": [
+        "Identifies that the it2 CLI is likely not installed or the Python API is not enabled",
+        "Provides it2 installation commands (uv tool install it2, pipx install it2, or pip install --user it2)",
+        "Mentions enabling Python API in iTerm2 Settings -> General -> Magic",
+        "Suggests verifying with 'it2 --version' and/or 'it2 session list'",
+        "Does NOT tell the user to set teammateMode manually as the primary fix — auto-detection should work once it2 is set up"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What's the difference between running teammates in tmux when I'm already inside a tmux session vs when I'm not?",
+      "expected_output": "Explanation of native tmux (splits current window) vs external session (creates claude-swarm session)",
+      "files": [],
+      "expectations": [
+        "Explains that inside tmux, teammates split the current tmux window into panes",
+        "Explains that outside tmux, a new tmux session called 'claude-swarm' is created",
+        "Mentions 'tmux attach -t claude-swarm' as the way to view workers when running outside tmux",
+        "Notes that tmux teammates survive leader exit (persistence advantage)",
+        "Does NOT conflate the two modes or omit either one"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I'm using VS Code's integrated terminal on Windows. Can I get split-pane teammate views?",
+      "expected_output": "Explanation that iTerm2 is macOS-only and not supported in VS Code terminal; tmux or in-process are the options",
+      "files": [],
+      "expectations": [
+        "States that the iTerm2 backend is macOS-only and explicitly not supported in VS Code's integrated terminal",
+        "Does NOT suggest installing it2 in VS Code terminal",
+        "Recommends in-process as the likely fallback or tmux if available",
+        "Mentions that Shift+Up/Down can be used with in-process backend to interact with teammates"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "After my team finished, I notice orphaned tmux sessions still running. How do I clean them up, and how do I prevent this?",
+      "expected_output": "Commands to list and kill orphaned tmux sessions, plus explanation of why they persist",
+      "files": [],
+      "expectations": [
+        "Provides 'tmux ls' to list sessions and 'tmux kill-session -t <name>' to clean up",
+        "Explains that tmux teammates can survive leader exit, which is why orphans occur",
+        "Does NOT recommend killing all tmux sessions indiscriminately without checking first",
+        "Mentions that in-process backend avoids this issue since workers die with the leader"
+      ]
+    }
+  ]
+}

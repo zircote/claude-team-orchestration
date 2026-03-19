@@ -1,0 +1,109 @@
+{
+  "skill_name": "agent-types",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to search the codebase for all places where we handle authentication tokens. I just want to understand the code, not change anything.",
+      "expected_output": "Recommends Explore agent type for read-only codebase search, using haiku model for speed and cost efficiency",
+      "files": [],
+      "expectations": [
+        "Recommends Explore as the agent type (not Plan, not general-purpose)",
+        "Specifies subagent_type as 'Explore' in the Task call or recommendation",
+        "Does NOT recommend general-purpose since the task is read-only",
+        "May mention haiku model as appropriate for fast, cheap exploration",
+        "Does NOT suggest any write-capable agent for this read-only task"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to audit our Express.js API for SQL injection, XSS, and insecure dependencies. This is a security review, not a code change.",
+      "expected_output": "Recommends sdlc:security-reviewer plugin agent for vulnerability assessment",
+      "files": [],
+      "expectations": [
+        "Recommends sdlc:security-reviewer as the agent type",
+        "Uses the plugin:agent naming convention (sdlc:security-reviewer, not just 'security-reviewer')",
+        "Does NOT recommend Explore or Plan since specialized security agent exists",
+        "Does NOT recommend general-purpose for a pure review task",
+        "Correctly identifies this as a review/audit task rather than implementation"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I have a 50,000-line Python file that needs to be analyzed for performance bottlenecks. The file is source code.",
+      "expected_output": "Recommends RLM pattern with swarm:rlm-code-analyzer for chunked source code analysis",
+      "files": [],
+      "expectations": [
+        "Recommends swarm:rlm-code-analyzer (not rlm-chunk-analyzer or rlm-data-analyzer)",
+        "Mentions or implies chunked/RLM analysis for the large file",
+        "Does NOT recommend overriding the Haiku model for the analyzer",
+        "Mentions swarm:rlm-synthesizer for aggregating findings (Sonnet model)",
+        "Does NOT suggest a single Explore agent for a 50,000-line file analysis"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need an agent to research current best practices for database connection pooling, then implement the changes in our codebase.",
+      "expected_output": "Recommends splitting into research phase (adr:adr-researcher or Explore) and implementation phase (general-purpose), since no single read-only agent can do both",
+      "files": [],
+      "expectations": [
+        "Recognizes this requires both read-only research AND write capability",
+        "Does NOT recommend only Explore or Plan (they cannot write files)",
+        "Recommends general-purpose for the implementation phase or the combined task",
+        "May suggest adr:adr-researcher or feature-dev:code-explorer for the research phase",
+        "Clearly distinguishes that read-only agents cannot perform implementation work"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I have a directory with mixed files: some .py source files, a large CSV dataset, and several JSONL log files. I need to analyze all of them for anomalies.",
+      "expected_output": "Recommends multi-file RLM with different analyst types: rlm-code-analyzer for Python, rlm-data-analyzer for CSV, rlm-json-analyzer for JSONL",
+      "files": [],
+      "expectations": [
+        "Recommends swarm:rlm-code-analyzer for the Python files",
+        "Recommends swarm:rlm-data-analyzer for the CSV files",
+        "Recommends swarm:rlm-json-analyzer for the JSONL files",
+        "Mentions multi-file RLM mode or simultaneous different analyst types",
+        "Recommends swarm:rlm-synthesizer (Sonnet) for aggregating all findings",
+        "Does NOT assign a single analyst type to all file types"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I need to run 'git log --oneline -20' and 'npm test' to check the project status. That's it.",
+      "expected_output": "Recommends Bash agent since the task only requires shell command execution",
+      "files": [],
+      "expectations": [
+        "Recommends Bash as the agent type",
+        "Does NOT recommend general-purpose for simple command execution",
+        "Does NOT recommend Explore (which is for code reading, not command execution)",
+        "Recognizes that Bash agent has shell access only, which is sufficient here"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I need to refactor our authentication module. First analyze the architecture, then implement the changes, then run tests, then do a security check on the refactored code.",
+      "expected_output": "Recommends a pipeline of specialized agents: refactor:architect for analysis, refactor:refactor-code for implementation, refactor:refactor-test for testing, refactor:security-review for security validation",
+      "files": [],
+      "expectations": [
+        "Recommends refactor:architect for the architecture analysis phase",
+        "Recommends refactor:refactor-code for the implementation phase",
+        "Recommends refactor:refactor-test for the test coverage phase",
+        "Recommends refactor:security-review for the security check phase",
+        "Uses correct plugin:agent naming convention for all agents",
+        "Does NOT use a single general-purpose agent for all four phases"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "How do I configure MCP servers in Claude Code? I'm not sure about the syntax.",
+      "expected_output": "Recommends claude-code-guide agent which has read-only tools plus WebFetch and WebSearch for answering Claude Code questions",
+      "files": [],
+      "expectations": [
+        "Recommends claude-code-guide as the agent type",
+        "Does NOT recommend Explore or Plan for a Claude Code usage question",
+        "Does NOT recommend general-purpose for a pure information question",
+        "Recognizes claude-code-guide has web access (WebFetch, WebSearch) for documentation lookup"
+      ]
+    }
+  ]
+}

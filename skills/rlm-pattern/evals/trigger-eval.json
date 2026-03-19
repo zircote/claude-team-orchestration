@@ -1,0 +1,26 @@
+[
+  {
+    "query": "I have a 30,000 line log file that needs analysis. Can you help?",
+    "should_trigger": true
+  },
+  {
+    "query": "Analyze this CSV export - it has about 50,000 rows of sales data at /data/sales.csv",
+    "should_trigger": true
+  },
+  {
+    "query": "Can you look at line 42 of /src/main.py and tell me what that function does?",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this entire project directory at /project/src/ for code quality issues - there are about 20 source files.",
+    "should_trigger": true
+  },
+  {
+    "query": "Fix the bug on line 15 of /src/utils.py where the variable name is wrong.",
+    "should_trigger": false
+  },
+  {
+    "query": "Search for all TODO comments in the codebase",
+    "should_trigger": false
+  }
+]

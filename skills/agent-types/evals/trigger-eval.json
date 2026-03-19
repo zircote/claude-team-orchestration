@@ -1,0 +1,42 @@
+[
+  {
+    "query": "What kind of agent should I use to search the codebase?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to pick the right subagent_type for analyzing a CSV file in RLM mode",
+    "should_trigger": true
+  },
+  {
+    "query": "What tools does the Explore agent have access to?",
+    "should_trigger": true
+  },
+  {
+    "query": "Can I use a Plan agent to edit files?",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I send a message between agents in a team?",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a team with 3 workers to process these files",
+    "should_trigger": false
+  },
+  {
+    "query": "What's the difference between sdlc:security-reviewer and feature-dev:code-reviewer?",
+    "should_trigger": true
+  },
+  {
+    "query": "Fix the bug in my authentication module",
+    "should_trigger": false
+  },
+  {
+    "query": "Which plugin agents are available for refactoring?",
+    "should_trigger": true
+  },
+  {
+    "query": "Set up a pipeline pattern with dependencies between tasks",
+    "should_trigger": false
+  }
+]

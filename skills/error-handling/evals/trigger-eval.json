@@ -1,0 +1,50 @@
+[
+  {
+    "query": "Cannot cleanup with active members",
+    "should_trigger": true
+  },
+  {
+    "query": "My teammate crashed and tasks are stuck, how do I recover?",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I set up a TeammateIdle hook to enforce code quality?",
+    "should_trigger": true
+  },
+  {
+    "query": "What are the known limitations of agent teams?",
+    "should_trigger": true
+  },
+  {
+    "query": "I'm getting 'Already leading a team' error when trying to create a new team",
+    "should_trigger": true
+  },
+  {
+    "query": "My unit tests are failing with a null pointer exception, how do I fix this?",
+    "should_trigger": false
+  },
+  {
+    "query": "I'm getting a build error in my TypeScript project, module not found",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I handle runtime errors in my Python application?",
+    "should_trigger": false
+  },
+  {
+    "query": "My CI pipeline is failing on the linting step, what should I check?",
+    "should_trigger": false
+  },
+  {
+    "query": "I have an unhandled promise rejection crashing my Node server",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I create a new agent team with three specialists?",
+    "should_trigger": false
+  },
+  {
+    "query": "What error handling best practices should I follow in Go?",
+    "should_trigger": false
+  }
+]

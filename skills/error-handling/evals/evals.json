@@ -1,0 +1,94 @@
+{
+  "skill_name": "error-handling",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm getting 'Cannot cleanup with active members' when I try to delete my team. What do I do?",
+      "expected_output": "Diagnoses that teammates are still running, instructs to send shutdown_request messages to all teammates first, wait for approvals, then call TeamDelete.",
+      "files": [],
+      "expectations": [
+        "Response identifies the cause: teammates are still running and must be shut down first",
+        "Response mentions sending shutdown_request messages (via SendMessage) to each teammate before cleanup",
+        "Response includes waiting for shutdown approvals before calling TeamDelete",
+        "Response shows the correct sequence: shutdown all teammates -> wait for approval -> verify no active members -> TeamDelete",
+        "Response does NOT suggest force-killing teammates as the first option"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to set up a quality gate so that when a teammate finishes, it automatically runs my test suite and sends the teammate back to fix failures. How do I configure that?",
+      "expected_output": "Explains the TeammateIdle hook with JSON configuration, exit code 2 to send feedback, and how to wire up a test script.",
+      "files": [],
+      "expectations": [
+        "Response includes a TeammateIdle hook configuration in JSON format with the hooks key structure",
+        "Response explains that exit code 0 allows the teammate to go idle normally",
+        "Response explains that exit code 2 sends feedback to the teammate and keeps them working",
+        "Response shows the hook type as 'command' with a command field pointing to a script",
+        "Response does NOT confuse TeammateIdle with TaskCompleted hook behavior"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "One of my teammates crashed about 2 minutes ago and now I can't clean up the team. The tasks it was working on are stuck. What happens next and what can I do?",
+      "expected_output": "Explains the 5-minute heartbeat timeout, that the teammate will be marked inactive after timeout, tasks can be reclaimed, and cleanup will work after timeout expires.",
+      "files": [],
+      "expectations": [
+        "Response mentions the 5-minute heartbeat timeout for crashed teammates",
+        "Response explains that the crashed teammate will be automatically marked inactive after the timeout expires",
+        "Response states that tasks remain in the task list and can be claimed by another teammate",
+        "Response advises that cleanup (TeamDelete) will work after the timeout expires",
+        "Response suggests spawning a replacement teammate as an option to continue the stuck work"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I resumed my session with /resume and now my lead agent keeps trying to message teammates that don't exist anymore. It's stuck in a loop. Help!",
+      "expected_output": "Identifies the known limitation that /resume does not restore in-process teammates, and advises telling the lead to spawn new teammates.",
+      "files": [],
+      "expectations": [
+        "Response identifies this as the known limitation: /resume and /rewind do not restore in-process teammates",
+        "Response explains that after resuming, the lead may try to message teammates that no longer exist",
+        "Response advises telling the lead to spawn new teammates rather than trying to message old ones",
+        "Response does NOT suggest that /resume should work or that this is a bug to file"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "My lead agent has started writing code itself instead of waiting for the teammates I asked it to delegate to. The teammates are idle and the lead is doing everything. How do I stop this?",
+      "expected_output": "Identifies the 'lead starts implementing instead of delegating' pattern and suggests telling the lead to wait, or enabling delegate mode.",
+      "files": [],
+      "expectations": [
+        "Response identifies this as the known issue where the lead starts doing work itself instead of delegating",
+        "Response suggests telling the lead to wait for teammates to complete their tasks",
+        "Response mentions delegate mode as an option to restrict the lead to coordination-only tools",
+        "Response provides a concrete example message to send to the lead, such as 'Wait for your teammates to complete their tasks before proceeding'"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I have a task that's been stuck in 'pending' status for a while even though I'm pretty sure the dependency task was finished by another teammate. What should I check?",
+      "expected_output": "Diagnoses task status lag, suggests checking if blocking task was actually marked completed, manually updating status if work is done, or nudging the teammate.",
+      "files": [],
+      "expectations": [
+        "Response identifies the known limitation that task status can lag and teammates sometimes fail to mark tasks completed",
+        "Response advises checking whether the blocking/dependency task was actually marked as completed",
+        "Response suggests manually updating the task status if the work is confirmed done",
+        "Response suggests telling the lead to nudge the teammate as an alternative",
+        "Response mentions debugging commands to inspect task state (e.g., checking task JSON files with jq for status and blockedBy fields)"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I'm trying to have one of my teammates create a sub-team with its own workers. It keeps failing. Also I want to switch the lead to a different teammate mid-session. Are either of these possible?",
+      "expected_output": "Explains both limitations: no nested teams (only lead can manage teams) and lead is fixed for the session lifetime.",
+      "files": [],
+      "expectations": [
+        "Response clearly states that nested teams are not supported: teammates cannot spawn their own teams or teammates",
+        "Response states that only the lead can manage the team",
+        "Response clearly states that the lead is fixed: the session that creates the team is the lead for its lifetime",
+        "Response states that leadership cannot be transferred or promoted to a teammate",
+        "Response does NOT suggest workarounds that violate these constraints (e.g., having a teammate call TeamCreate)"
+      ]
+    }
+  ]
+}

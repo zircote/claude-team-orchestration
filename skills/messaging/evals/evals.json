@@ -1,0 +1,108 @@
+{
+  "skill_name": "messaging",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a team running with a security-reviewer and a performance-reviewer. Send the security-reviewer a message asking them to focus on the OAuth token handling in src/auth.ts.",
+      "expected_output": "Uses SendMessage with to='security-reviewer', includes a meaningful message about OAuth token handling, and provides a summary field.",
+      "files": [],
+      "expectations": [
+        "Uses SendMessage tool (not plain text output) to communicate with the teammate",
+        "Sets 'to' field to 'security-reviewer' exactly (not 'performance-reviewer', not '*')",
+        "Message content references OAuth token handling and src/auth.ts",
+        "Includes a 'summary' field with a brief 5-10 word preview",
+        "Does NOT broadcast to '*' since this is directed at one specific teammate"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Broadcast an urgent message to the whole team: we just discovered a critical vulnerability in the payments module and everyone needs to stop what they're doing and review their code for SQL injection.",
+      "expected_output": "Uses SendMessage with to='*' for broadcast, message covers the critical vulnerability and SQL injection concern.",
+      "files": [],
+      "expectations": [
+        "Uses SendMessage with 'to' set to '*' for broadcast delivery",
+        "Message content mentions the critical vulnerability in payments module",
+        "Message content mentions SQL injection as the specific concern",
+        "Includes a 'summary' field describing the broadcast",
+        "Does NOT send individual messages to each teammate manually (broadcast handles fan-out)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "All the tasks are done. Send a shutdown request to worker-1 telling them we're wrapping up because all tasks are complete.",
+      "expected_output": "Uses SendMessage with a structured shutdown_request message object, not a plain text string.",
+      "files": [],
+      "expectations": [
+        "Uses SendMessage with 'to' set to 'worker-1'",
+        "Message is a structured object with 'type' field set to 'shutdown_request'",
+        "Structured message includes a 'reason' field explaining why shutdown is requested",
+        "Does NOT send a plain text string like 'please shut down' instead of the structured protocol object",
+        "Does NOT use 'shutdown_response' type (that is for the recipient's reply)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I just received a shutdown request from team-lead with requestId 'shutdown-9f3a21@worker-2'. I still have task #7 in progress and need about 3 more minutes. Reject the shutdown and let them know.",
+      "expected_output": "Uses SendMessage with a structured shutdown_response that rejects, includes the correct request_id, and explains the reason.",
+      "files": [],
+      "expectations": [
+        "Uses SendMessage with 'to' set to 'team-lead'",
+        "Message is a structured object with 'type' field set to 'shutdown_response'",
+        "Includes 'request_id' field matching exactly 'shutdown-9f3a21@worker-2'",
+        "Sets 'approve' field to false (rejection)",
+        "Includes a 'reason' field mentioning task #7 still in progress"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The architect just submitted a plan approval request with requestId 'plan-abc456'. The plan looks good, approve it so they can start implementing.",
+      "expected_output": "Uses SendMessage with a structured plan_approval_response that approves, includes the correct request_id.",
+      "files": [],
+      "expectations": [
+        "Uses SendMessage with 'to' set to 'architect'",
+        "Message is a structured object with 'type' field set to 'plan_approval_response'",
+        "Includes 'request_id' field matching exactly 'plan-abc456'",
+        "Sets 'approve' field to true",
+        "Does NOT include a 'feedback' field or includes it as empty/null (approval needs no feedback)"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "The architect submitted plan request 'plan-def789' but the plan is missing error handling for API failures and doesn't address rate limiting. Reject the plan with that feedback.",
+      "expected_output": "Uses SendMessage with a structured plan_approval_response that rejects with specific feedback about error handling and rate limiting.",
+      "files": [],
+      "expectations": [
+        "Uses SendMessage with 'to' set to 'architect'",
+        "Message is a structured object with 'type' field set to 'plan_approval_response'",
+        "Includes 'request_id' field matching exactly 'plan-def789'",
+        "Sets 'approve' field to false",
+        "Includes 'feedback' field mentioning both error handling for API failures and rate limiting"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I want to check what messages worker-3 has received. How do I debug their inbox?",
+      "expected_output": "Shows the file path and command for inspecting inbox files, referencing the correct path pattern.",
+      "files": [],
+      "expectations": [
+        "References the inbox file path pattern ~/.claude/teams/{team}/inboxes/{agent}.json",
+        "Suggests using cat or jq to inspect the inbox JSON file",
+        "Mentions worker-3 specifically in the path or command",
+        "Does NOT suggest using SendMessage to check another agent's inbox (that's not how debugging works)"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "One of my teammates just sent me a status update as a regular message. Should I broadcast my reply back to the whole team or just reply to them directly?",
+      "expected_output": "Advises using a direct message (not broadcast) since this is a reply to one teammate, and explains when broadcast is appropriate.",
+      "files": [],
+      "expectations": [
+        "Recommends direct message (SendMessage with specific 'to' name) rather than broadcast",
+        "Explains that broadcast sends N messages for N teammates and is expensive",
+        "Lists valid broadcast use cases: critical issues, major team-wide announcements",
+        "Lists cases where broadcast should NOT be used: replies, back-and-forth, info relevant to only some teammates",
+        "Does NOT recommend broadcast for a simple reply to one teammate"
+      ]
+    }
+  ]
+}

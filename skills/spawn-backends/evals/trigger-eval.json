@@ -1,0 +1,46 @@
+[
+  {
+    "query": "How do spawn backends work for Claude Code teammates?",
+    "should_trigger": true
+  },
+  {
+    "query": "My teammates are running in the background and I can't see them. How do I switch to split panes?",
+    "should_trigger": true
+  },
+  {
+    "query": "What does the teammateMode setting do?",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I set up iTerm2 split panes for my agent team?",
+    "should_trigger": true
+  },
+  {
+    "query": "I'm getting 'No pane backend available' error when spawning teammates",
+    "should_trigger": true
+  },
+  {
+    "query": "How do I create a team with three specialists for code review?",
+    "should_trigger": false
+  },
+  {
+    "query": "What agent types are available and which model does each use?",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I open a new terminal tab and run a script in it?",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I split my tmux window to monitor two log files side by side?",
+    "should_trigger": false
+  },
+  {
+    "query": "Send a shutdown message to all teammates so they wrap up",
+    "should_trigger": false
+  },
+  {
+    "query": "Which orchestration pattern should I use for parallel code reviews?",
+    "should_trigger": false
+  }
+]

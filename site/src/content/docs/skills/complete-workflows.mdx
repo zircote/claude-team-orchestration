@@ -28,7 +28,7 @@ Task({
   - Sensitive data exposure
 
   When done, send your findings to team-lead using:
-  SendMessage({ type: "message", recipient: "team-lead", content: "Your findings here", summary: "Security review findings" })`,
+  SendMessage({ to: "team-lead", message: "Your findings here", summary: "Security review findings" })`,
   run_in_background: true
 })
 
@@ -72,9 +72,9 @@ Task({
 // Combine all reviewer findings into a cohesive report
 
 // === STEP 5: Cleanup ===
-SendMessage({ type: "shutdown_request", recipient: "security", content: "Review complete" })
-SendMessage({ type: "shutdown_request", recipient: "quality", content: "Review complete" })
-SendMessage({ type: "shutdown_request", recipient: "arch", content: "Review complete" })
+SendMessage({ to: "security", message: { type: "shutdown_request", reason: "Review complete" } })
+SendMessage({ to: "quality", message: { type: "shutdown_request", reason: "Review complete" } })
+SendMessage({ to: "arch", message: { type: "shutdown_request", reason: "Review complete" } })
 // Wait for approvals...
 TeamDelete()
 ```
@@ -250,10 +250,10 @@ Task({
 })
 
 // === STEP 5: SHUTDOWN AND CLEANUP ===
-SendMessage({ type: "shutdown_request", recipient: "analyst-1", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "analyst-2", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "analyst-3", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "synthesizer", content: "Done" })
+SendMessage({ to: "analyst-1", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "analyst-2", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "analyst-3", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "synthesizer", message: { type: "shutdown_request", reason: "Done" } })
 // Wait for approvals...
 TeamDelete()
 ```
@@ -360,13 +360,13 @@ Write summaries to task descriptions. When Phase 2 unblocks, complete it and sen
 
 // === STEP 6: SHUTDOWN AND CLEANUP ===
 // After final report received:
-SendMessage({ type: "shutdown_request", recipient: "code-analyst-1", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "code-analyst-2", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "code-analyst-3", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "data-analyst-1", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "data-analyst-2", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "json-analyst-1", content: "Done" })
-SendMessage({ type: "shutdown_request", recipient: "synthesizer", content: "Done" })
+SendMessage({ to: "code-analyst-1", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "code-analyst-2", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "code-analyst-3", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "data-analyst-1", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "data-analyst-2", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "json-analyst-1", message: { type: "shutdown_request", reason: "Done" } })
+SendMessage({ to: "synthesizer", message: { type: "shutdown_request", reason: "Done" } })
 // Wait for approvals...
 TeamDelete()
 ```

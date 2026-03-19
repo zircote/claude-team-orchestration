@@ -430,9 +430,8 @@ In single-file RLM, analysts send full JSON findings to the Team Lead via `SendM
 2. **Analyst notifies team-lead** with a one-line summary only:
    ```javascript
    SendMessage({
-     type: "message",
-     recipient: "team-lead",
-     content: "Chunk 3/10 complete: 4 findings (2 high, 1 medium, 1 low)",
+     to: "team-lead",
+     message: "Chunk 3/10 complete: 4 findings (2 high, 1 medium, 1 low)",
      summary: "Chunk 3/10 — 4 findings"
    })
    ```

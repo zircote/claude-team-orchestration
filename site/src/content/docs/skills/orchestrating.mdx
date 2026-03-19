@@ -125,7 +125,7 @@ Task({ subagent_type: "Explore", description: "Find files", prompt: "..." })
 
 ### Message Teammate
 ```javascript
-SendMessage({ type: "message", recipient: "worker-1", content: "...", summary: "Brief update" })
+SendMessage({ to: "worker-1", message: "...", summary: "Brief update" })
 ```
 
 ### Create Task Pipeline
@@ -137,7 +137,7 @@ TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
 
 ### Shutdown Team
 ```javascript
-SendMessage({ type: "shutdown_request", recipient: "worker-1", content: "All done" })
+SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "All done" } })
 // Wait for approval...
 TeamDelete()
 ```

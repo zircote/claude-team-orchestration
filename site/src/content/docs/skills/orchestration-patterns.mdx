@@ -209,18 +209,18 @@ Task({
 
 // 4. Review and approve/reject
 SendMessage({
-  type: "plan_approval_response",
-  request_id: "plan-xxx",
-  recipient: "architect",
-  approve: true
+  to: "architect",
+  message: { type: "plan_approval_response", request_id: "plan-xxx", approve: true }
 })
 // OR reject with feedback:
 SendMessage({
-  type: "plan_approval_response",
-  request_id: "plan-xxx",
-  recipient: "architect",
-  approve: false,
-  content: "Please add rate limiting considerations"
+  to: "architect",
+  message: {
+    type: "plan_approval_response",
+    request_id: "plan-xxx",
+    approve: false,
+    feedback: "Please add rate limiting considerations"
+  }
 })
 ```
 

@@ -5,6 +5,8 @@ description: Send messages between agents using SendMessage including direct mes
 
 # Messaging
 
+> **Experimental**: Agent teams are disabled by default. Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in your [settings.json](https://code.claude.com/docs/en/settings) or environment.
+
 Send and receive messages between agents. All inter-agent communication flows through the messaging system.
 
 **Related skills:**

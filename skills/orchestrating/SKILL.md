@@ -25,6 +25,8 @@ Master multi-agent orchestration using Claude Code's agent teams and task system
 | **Inbox** | JSON file where an agent receives messages from teammates. | `~/.claude/teams/{name}/inboxes/{agent}.json` |
 | **Message** | A JSON object sent between agents. Can be text or structured (shutdown_request, idle_notification, etc). | Stored in inbox files |
 | **Backend** | How teammates run. Auto-detected: `in-process` (same Node.js, invisible), `tmux` (separate panes, visible), `iterm2` (split panes in iTerm2). See [Spawn Backends](../spawn-backends/SKILL.md). | Auto-detected based on environment |
+| **Mode** | Permission mode for spawned agents. Set `mode: "plan"` to require plan approval before the agent acts. See [Plan Approval pattern](../orchestration-patterns/SKILL.md). | Task parameter |
+| **Isolation** | Set `isolation: "worktree"` to give an agent an isolated git worktree copy. Cleaned up if no changes; returns worktree path/branch if changes are made. Recommended for agents making code changes. | Task parameter |
 
 ### How They Connect
 
@@ -140,6 +142,12 @@ TaskCreate({ subject: "Step 2", description: "...", activeForm: "Working on step
 TaskUpdate({ taskId: "2", addBlockedBy: ["1"] })
 ```
 
+### Spawn with Plan Approval
+```javascript
+Task({ team_name: "my-team", name: "planner", subagent_type: "general-purpose", prompt: "...", mode: "plan", run_in_background: true })
+// Teammate works read-only, sends plan_approval_request, you approve/reject
+```
+
 ### Shutdown Team
 ```javascript
 SendMessage({ to: "worker-1", message: { type: "shutdown_request", reason: "All done" } })
@@ -181,13 +189,11 @@ Use these placeholders in your skill content to inject runtime values:
 
 ### Dynamic Context Injection
 
-Use `` !`command` `` syntax to execute a shell command and inject its output as context when the skill loads:
+Add a `context` field in frontmatter with the bang-backtick syntax to execute a shell command and inject its output when the skill loads. For example, setting `context` to bang-backtick `cat ${CLAUDE_SKILL_DIR}/extra-context.md` backtick will read that file into context at load time.
 
-```yaml
-context: !`cat ${CLAUDE_SKILL_DIR}/extra-context.md`
-```
-
-> **Security:** Commands execute locally when the skill loads. Use only safe, read-only commands (e.g., `cat`, `git log`, `date`). Avoid network calls or mutations. Review `` !`command` `` expressions in third-party plugins before loading.
+> **Security:** Commands execute locally when the skill loads. Use only safe, read-only commands (e.g., `cat`, `git log`, `date`). Avoid network calls or mutations. Review bang-backtick expressions in third-party plugins before loading.
+>
+> **Note:** Do not put the bang-backtick syntax inside code blocks in skill content — the skill loader will attempt to execute it even within fenced code blocks.
 
 ### Example: Isolated Subagent Skill
 

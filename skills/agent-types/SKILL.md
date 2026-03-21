@@ -5,6 +5,8 @@ description: Choose the right agent type for each task including built-in agents
 
 # Agent Types
 
+> **Experimental**: Agent teams are disabled by default. Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in your [settings.json](https://code.claude.com/docs/en/settings) or environment.
+
 Choose the right agent type for each role in your team. Agent types determine what tools are available and what the agent is optimized for.
 
 **Related skills:**

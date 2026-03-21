@@ -5,6 +5,8 @@ description: Apply proven orchestration patterns for agent teams including paral
 
 # Orchestration Patterns
 
+> **Experimental**: Agent teams are disabled by default. Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in your [settings.json](https://code.claude.com/docs/en/settings) or environment.
+
 Proven patterns for structuring agent teams. Choose the right pattern based on your task's coordination needs.
 
 **Related skills:**

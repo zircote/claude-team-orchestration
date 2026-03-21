@@ -5,6 +5,8 @@ description: Debug and recover from agent team errors including common errors, h
 
 # Error Handling
 
+> **Experimental**: Agent teams are disabled by default. Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in your [settings.json](https://code.claude.com/docs/en/settings) or environment.
+
 Debug, recover from, and prevent common agent team errors. Includes hooks for quality enforcement and known limitations.
 
 **Related skills:**

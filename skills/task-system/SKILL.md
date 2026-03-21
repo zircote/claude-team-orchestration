@@ -5,6 +5,8 @@ description: Manage shared task lists for agent teams including creating tasks, 
 
 # Task System
 
+> **Experimental**: Agent teams are disabled by default. Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` in your [settings.json](https://code.claude.com/docs/en/settings) or environment.
+
 Manage shared work items with dependencies, ownership, and status tracking across agent teams.
 
 **Related skills:**
